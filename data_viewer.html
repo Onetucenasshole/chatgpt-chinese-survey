@@ -92,6 +92,13 @@ table.data-table {
   font-weight: 600; font-size: 13px; margin-left: 12px;
 }
 
+.spss-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:12px; }
+.spss-table th { background:#1a5276; color:#fff; padding:8px; text-align:center; font-size:11px; }
+.spss-table td { padding:7px 6px; text-align:center; border-bottom:1px solid #f0f2f5; }
+.spss-table td.left { text-align:left; }
+.spss-table .module-row td { background:#f0f5fa; font-weight:700; text-align:left; padding:8px; font-size:13px; }
+.spss-table .alpha { background:#e8f5e9; color:#27ae60; font-weight:700; }
+
 .hidden { display: none !important; }
 
 .toast {
@@ -169,18 +176,25 @@ table.data-table {
   <div class="card" id="chartCard">
     <h3>📊 统计图表</h3>
     <div class="toolbar" style="margin-bottom:16px;">
-      <select id="chartType" onchange="renderChart()" style="padding:8px 12px;border:2px solid #e0e4e8;border-radius:10px;font-size:14px;">
-        <option value="bar">柱状图 (均值)</option>
-        <option value="horizontalBar">横向柱状图</option>
-        <option value="radar">雷达图</option>
-        <option value="line">折线图</option>
-        <option value="polarArea">极地区域图</option>
+      <select id="moduleFilter" onchange="onModuleChange()" style="padding:8px 12px;border:2px solid #e0e4e8;border-radius:10px;font-size:14px;">
+        <option value="all">全部题目</option>
       </select>
-      <span style="font-size:12px;color:#888;margin-left:8px;">所有量表题目的均值对比</span>
+      <select id="chartType" onchange="renderChart()" style="padding:8px 12px;border:2px solid #e0e4e8;border-radius:10px;font-size:14px;">
+        <option value="bar">柱状图</option>
+        <option value="line">折线图</option>
+      </select>
+      <button class="btn btn-purple" onclick="exportChartImage()">🖼️ 导出图表为图片</button>
+      <button class="btn btn-outline" onclick="exportSPSSReport()">📄 导出分析报告</button>
     </div>
     <div style="max-height:600px;overflow-y:auto;">
       <canvas id="likertChart" height="80"></canvas>
     </div>
+  </div>
+
+  <!-- SPSS Analysis -->
+  <div class="card" id="spssCard">
+    <h3>🔬 SPSS 风格描述性分析</h3>
+    <div class="table-wrap" id="spssContent"></div>
   </div>
 </div>
 
@@ -266,12 +280,57 @@ const studentQuestions = [
   '能提高学习满意度', '可弥补传统课堂不足', '愿意接受辅助中文学习'
 ];
 
-// ==== Tab switching ====
+// ==== Module definitions ====
+const teacherModules = [
+  { name:'一、对ChatGPT的了解与使用情况', qStart:1, qEnd:5 },
+  { name:'二、对ChatGPT教学价值的认知', qStart:6, qEnd:10 },
+  { name:'三、使用ChatGPT的便利性与可操作性', qStart:11, qEnd:16 },
+  { name:'四、实际教学需求', qStart:17, qEnd:26 },
+  { name:'五、使用ChatGPT的顾虑', qStart:27, qEnd:33 },
+  { name:'六、培训与支持需求', qStart:34, qEnd:39 },
+  { name:'七、总体评价与未来使用意愿', qStart:40, qEnd:46 }
+];
+const studentModules = [
+  { name:'I. Conocimiento sobre ChatGPT', qStart:1, qEnd:7 },
+  { name:'II. Facilidad de uso percibida', qStart:8, qEnd:17 },
+  { name:'III. Ayuda en habilidades (听/说/读/写)', qStart:18, qEnd:37 },
+  { name:'IV. Interés y aprendizaje autónomo', qStart:38, qEnd:42 },
+  { name:'V. Confianza y fiabilidad', qStart:43, qEnd:49 },
+  { name:'VI. Riesgos y preocupaciones', qStart:50, qEnd:57 },
+  { name:'VII. Satisfacción con el aprendizaje', qStart:58, qEnd:63 }
+];
+
+let currentModule = 'all';
+
+function getModuleQuestions() {
+  const modules = currentTab === 'teacher' ? teacherModules : studentModules;
+  const qs = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  if (currentModule === 'all') return { qs, range: [1, qs.length] };
+  const m = modules.find(m => m.name === currentModule);
+  if (!m) return { qs, range: [1, qs.length] };
+  return { qs: qs.slice(m.qStart-1, m.qEnd), range: [m.qStart, m.qEnd] };
+}
+
+function populateModuleFilter() {
+  const sel = document.getElementById('moduleFilter');
+  const modules = currentTab === 'teacher' ? teacherModules : studentModules;
+  sel.innerHTML = '<option value="all">全部题目</option>';
+  modules.forEach(m => {
+    sel.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+  });
+  currentModule = 'all';
+}
+
+function onModuleChange() {
+  currentModule = document.getElementById('moduleFilter').value;
+  renderAll();
+}
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(tab === 'teacher' ? 'tabTeacher' : 'tabStudent').classList.add('active');
   document.getElementById('dataTitle').textContent = (tab === 'teacher' ? '教师问卷' : '学生问卷') + ' · 提交记录';
+  populateModuleFilter();
   renderAll();
 }
 
@@ -313,6 +372,7 @@ function renderAll() {
     renderTable(responses);
     renderSummary(responses);
     renderChart();
+    renderSPSS(responses);
   });
 }
 
@@ -430,7 +490,7 @@ let chartInstance = null;
 
 function renderChart() {
   const responses = getResponses();
-  const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  const { qs, range } = getModuleQuestions();
   const canvas = document.getElementById('likertChart');
   const ctx = canvas.getContext('2d');
   const type = document.getElementById('chartType').value;
@@ -445,63 +505,206 @@ function renderChart() {
   const likertData = {};
   responses.forEach(r => {
     Object.entries(r.likert || {}).forEach(([k, v]) => {
-      if (v !== null) {
-        if (!likertData[k]) likertData[k] = { sum: 0, count: 0 };
-        likertData[k].sum += v;
-        likertData[k].count++;
-      }
+      if (v === null) return;
+      const qNum = parseInt(k.slice(1));
+      if (qNum < range[0] || qNum > range[1]) return;
+      if (!likertData[k]) likertData[k] = { sum: 0, count: 0, vals: [] };
+      likertData[k].sum += v;
+      likertData[k].count++;
+      likertData[k].vals.push(v);
     });
   });
 
   const keys = Object.keys(likertData).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
   const labels = keys.map(k => {
-    const idx = parseInt(k.slice(1)) - 1;
-    return questions[idx] ? questions[idx].slice(0, 12) + '...' : 'Q' + k.slice(1);
+    const idx = parseInt(k.slice(1)) - range[0];
+    return qs[idx] || 'Q' + k.slice(1);
   });
   const values = keys.map(k => {
     const d = likertData[k];
     return +(d.sum / d.count).toFixed(2);
   });
 
-  const colors = values.map((v, i) => {
-    const hue = (i * 360 / values.length) % 360;
-    return `hsl(${hue}, 60%, 55%)`;
-  });
-
   const config = {
-    type: type === 'horizontalBar' ? 'bar' : type,
+    type: type,
     data: {
       labels: labels,
       datasets: [{
-        label: '均值 (1-5)',
+        label: '均值',
         data: values,
-        backgroundColor: type === 'radar' ? 'rgba(46,134,193,0.2)' : colors,
-        borderColor: type === 'radar' ? '#2e86c1' : colors.map(c => c.replace('55%)','45%)')),
-        borderWidth: 1,
-        pointBackgroundColor: '#2e86c1'
+        backgroundColor: type==='bar' ? 'rgba(46,134,193,0.6)' : 'transparent',
+        borderColor: '#2e86c1',
+        borderWidth: 2,
+        pointBackgroundColor: '#2e86c1',
+        pointRadius: 4,
+        tension: 0.1,
+        fill: false
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      indexAxis: type === 'horizontalBar' ? 'y' : 'x',
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => '均值: ' + ctx.raw
-          }
-        }
+        tooltip: { callbacks: { label: ctx => '均值: ' + ctx.raw } }
       },
-      scales: type === 'radar' || type === 'polarArea' ? {} : {
-        y: { min: 0, max: 5, ticks: { stepSize: 1 } },
-        x: type === 'horizontalBar' ? { min: 0, max: 5, ticks: { stepSize: 1 } } : {}
-      }
+      scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } }
     }
   };
 
-  canvas.height = Math.max(400, keys.length * 25);
+  canvas.height = Math.max(400, keys.length * 28);
   chartInstance = new Chart(ctx, config);
+}
+
+// ==== SPSS Analysis ====
+function renderSPSS(responses) {
+  const container = document.getElementById('spssContent');
+  if (responses.length === 0) {
+    container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">暂无数据</p>';
+    return;
+  }
+
+  const modules = currentTab === 'teacher' ? teacherModules : studentModules;
+  const allQs = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  const targetMods = currentModule === 'all' ? modules : modules.filter(m => m.name === currentModule);
+
+  let html = `<table class="spss-table"><thead><tr>
+    <th>题目</th><th>N</th><th>均值</th><th>中位数</th><th>标准差</th><th>最小值</th><th>最大值</th>
+  </tr></thead><tbody>`;
+
+  let grandTotalN = 0, grandAlphas = [];
+
+  targetMods.forEach(mod => {
+    html += `<tr class="module-row"><td colspan="7">${mod.name} (Q${mod.qStart}-Q${mod.qEnd})</td></tr>`;
+
+    const modVals = []; // For alpha calculation
+    for (let qi = mod.qStart; qi <= mod.qEnd; qi++) {
+      const k = 'q' + qi;
+      const vals = responses.map(r => r.likert && r.likert[k]).filter(v => v !== null && v !== undefined);
+      if (vals.length === 0) continue;
+      vals.sort((a,b) => a-b);
+      const n = vals.length;
+      const mean = (vals.reduce((s,v)=>s+v,0)/n).toFixed(2);
+      const median = n%2===0 ? ((vals[n/2-1]+vals[n/2])/2).toFixed(2) : vals[Math.floor(n/2)].toFixed(1);
+      const variance = vals.reduce((s,v)=>s+(v-mean)*(v-mean),0)/n;
+      const sd = Math.sqrt(variance).toFixed(2);
+      const label = allQs[qi-1] || 'Q'+qi;
+
+      html += `<tr><td class="left">${label}</td><td>${n}</td><td>${mean}</td><td>${median}</td><td>${sd}</td><td>${vals[0]}</td><td>${vals[n-1]}</td></tr>`;
+      modVals.push(vals);
+      grandTotalN += n;
+    }
+
+    // Cronbach's Alpha for this module
+    const alpha = calcAlpha(modVals, responses.length);
+    if (alpha !== null) {
+      html += `<tr><td class="left" style="font-weight:700;">Cronbach's α</td><td colspan="6" class="alpha">α = ${alpha.toFixed(3)} ${alpha>=0.7?'✅ 良好':'⚠️ 偏低'}</td></tr>`;
+      grandAlphas.push(alpha);
+    }
+  });
+
+  // Grand total alpha
+  if (grandAlphas.length > 0 && currentModule === 'all') {
+    const avgAlpha = (grandAlphas.reduce((s,a)=>s+a,0)/grandAlphas.length).toFixed(3);
+    html += `<tr class="module-row"><td colspan="7">整体 Cronbach's α = ${avgAlpha}</td></tr>`;
+  }
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function calcAlpha(moduleVals, totalN) {
+  const k = moduleVals.length;
+  if (k < 2) return null;
+  const n = Math.min(...moduleVals.map(v => v.length));
+  if (n < 2) return null;
+
+  // Calculate item variances and total variance using paired complete cases
+  let varItems = 0, varTotal = 0;
+  const paired = [];
+  for (let i = 0; i < n; i++) {
+    let row = moduleVals.map(v => v[i]);
+    if (row.every(x => x !== null && x !== undefined)) paired.push(row);
+  }
+  if (paired.length < 2) return null;
+
+  const pn = paired.length;
+  // Item variances
+  for (let j = 0; j < k; j++) {
+    const col = paired.map(r => r[j]);
+    const m = col.reduce((s,v)=>s+v,0)/pn;
+    varItems += col.reduce((s,v)=>s+(v-m)*(v-m),0)/pn;
+  }
+  // Total score variance
+  const totals = paired.map(r => r.reduce((s,v)=>s+v,0));
+  const totalMean = totals.reduce((s,v)=>s+v,0)/pn;
+  varTotal = totals.reduce((s,v)=>s+(v-totalMean)*(v-totalMean),0)/pn;
+
+  if (varTotal === 0) return null;
+  return (k/(k-1)) * (1 - varItems/varTotal);
+}
+
+// ==== Export chart as image ====
+function exportChartImage() {
+  const canvas = document.getElementById('likertChart');
+  if (!canvas.toDataURL) { showToast('⚠️ 暂无图表'); return; }
+  const link = document.createElement('a');
+  link.download = `${currentTab === 'teacher' ? '教师' : '学生'}_${currentModule === 'all' ? '全部' : '模块'}_${new Date().toISOString().slice(0,10)}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('✅ 图表已下载为 PNG');
+}
+
+// ==== Export SPSS report ====
+function exportSPSSReport() {
+  const responses = getResponses();
+  if (responses.length === 0) { showToast('⚠️ 没有数据'); return; }
+
+  const modules = currentTab === 'teacher' ? teacherModules : studentModules;
+  const allQs = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  const targetMods = currentModule === 'all' ? modules : modules.filter(m => m.name === currentModule);
+
+  let report = `SPSS风格描述性统计分析报告\n`;
+  report += `${'='.repeat(60)}\n`;
+  report += `${currentTab === 'teacher' ? '教师问卷' : '学生问卷'} | 模块: ${currentModule === 'all' ? '全部' : currentModule}\n`;
+  report += `样本量 N = ${responses.length} | 导出时间: ${new Date().toLocaleString('zh-CN')}\n`;
+  report += `${'='.repeat(60)}\n\n`;
+
+  targetMods.forEach(mod => {
+    report += `【${mod.name}】(Q${mod.qStart}-Q${mod.qEnd})\n`;
+    report += `${'-'.repeat(50)}\n`;
+    report += `题目\t\t\tN\t均值\t中位数\tSD\tMin\tMax\n`;
+
+    const modVals = [];
+    for (let qi = mod.qStart; qi <= mod.qEnd; qi++) {
+      const k = 'q' + qi;
+      const vals = responses.map(r => r.likert && r.likert[k]).filter(v => v !== null);
+      if (vals.length === 0) continue;
+      vals.sort((a,b) => a-b);
+      const n = vals.length;
+      const mean = (vals.reduce((s,v)=>s+v,0)/n).toFixed(2);
+      const median = n%2===0 ? ((vals[n/2-1]+vals[n/2])/2).toFixed(2) : vals[Math.floor(n/2)].toFixed(1);
+      const variance = vals.reduce((s,v)=>s+(v-mean)*(v-mean),0)/n;
+      const sd = Math.sqrt(variance).toFixed(2);
+      const label = (allQs[qi-1]||'Q'+qi).slice(0, 20).padEnd(20);
+      report += `${label}\t${n}\t${mean}\t${median}\t${sd}\t${vals[0]}\t${vals[n-1]}\n`;
+      modVals.push(vals);
+    }
+    const alpha = calcAlpha(modVals, responses.length);
+    if (alpha !== null) {
+      report += `\nCronbach's α = ${alpha.toFixed(3)} ${alpha>=0.7?'(良好)':'(偏低)'}\n`;
+    }
+    report += `\n`;
+  });
+
+  const blob = new Blob(['\uFEFF'+report], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `SPSS分析_${currentTab}_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ 分析报告已下载');
 }
 
 // ==== Export CSV ====
@@ -615,6 +818,7 @@ function showToast(msg) {
 }
 
 // ==== Load ====
+populateModuleFilter();
 renderAll();
 </script>
 </body>
