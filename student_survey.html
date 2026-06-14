@@ -574,16 +574,18 @@ function submitSurvey() {
   responses.push(data);
   localStorage.setItem('student_survey_responses', JSON.stringify(responses));
 
-  // Send email via EmailJS (if configured)
-  if (!EMAIL_SID.includes('YOUR_')) {
-    emailjs.send(EMAIL_SID, EMAIL_TID, {
-      to_email: EMAIL_TO,
-      survey_type: '学生问卷',
-      submit_time: new Date(data.timestamp).toLocaleString('es-MX'),
-      summary: `Edad:${data.age} | Nivel:${data.hskLevel} | Duración:${data.studyDuration} | Frec:${data.toolFreq}`,
-      raw_data: JSON.stringify(data, null, 2)
-    }).catch(() => {});
-  }
+  // Send email via EmailJS
+  emailjs.send(EMAIL_SID, EMAIL_TID, {
+    survey_type: '学生问卷',
+    submit_time: new Date(data.timestamp).toLocaleString('es-MX'),
+    summary: `Edad:${data.age} | Nivel:${data.hskLevel} | Duración:${data.studyDuration} | Frec:${data.toolFreq}`,
+    raw_data: JSON.stringify(data, null, 2)
+  }).then(() => {
+    console.log('Email sent');
+  }).catch(err => {
+    console.error('EmailJS error:', err);
+    showToast('⚠️ Error al enviar email: ' + (err.text || err.message || 'Error'));
+  });
 
   document.getElementById('thankYouOverlay').classList.add('show');
 }

@@ -697,16 +697,18 @@ function submitSurvey() {
   responses.push(data);
   localStorage.setItem('teacher_survey_responses', JSON.stringify(responses));
 
-  // Send email via EmailJS (if configured)
-  if (!EMAIL_SID.includes('YOUR_')) {
-    emailjs.send(EMAIL_SID, EMAIL_TID, {
-      to_email: EMAIL_TO,
-      survey_type: '教师问卷',
-      submit_time: new Date(data.timestamp).toLocaleString('zh-CN'),
-      summary: `年龄:${data.age} | 教龄:${data.teachYears} | 学校:${data.schoolType} | AI使用:${data.useAI}`,
-      raw_data: JSON.stringify(data, null, 2)
-    }).catch(() => {});
-  }
+  // Send email via EmailJS
+  emailjs.send(EMAIL_SID, EMAIL_TID, {
+    survey_type: '教师问卷',
+    submit_time: new Date(data.timestamp).toLocaleString('zh-CN'),
+    summary: `年龄:${data.age} | 教龄:${data.teachYears} | 学校:${data.schoolType} | AI使用:${data.useAI}`,
+    raw_data: JSON.stringify(data, null, 2)
+  }).then(() => {
+    console.log('Email sent successfully');
+  }).catch(err => {
+    console.error('EmailJS error:', err);
+    showToast('⚠️ 邮件发送失败: ' + (err.text || err.message || '未知错误'));
+  });
 
   document.getElementById('thankYouOverlay').classList.add('show');
 }
