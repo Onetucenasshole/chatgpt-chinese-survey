@@ -571,7 +571,7 @@ function renderSPSS(responses) {
     <th>题目</th><th>N</th><th>均值</th><th>中位数</th><th>标准差</th><th>最小值</th><th>最大值</th>
   </tr></thead><tbody>`;
 
-  let grandTotalN = 0, grandAlphas = [];
+  let grandAlphas = [];
 
   targetMods.forEach(mod => {
     html += `<tr class="module-row"><td colspan="7">${mod.name} (Q${mod.qStart}-Q${mod.qEnd})</td></tr>`;
@@ -583,15 +583,14 @@ function renderSPSS(responses) {
       if (vals.length === 0) continue;
       vals.sort((a,b) => a-b);
       const n = vals.length;
-      const mean = (vals.reduce((s,v)=>s+v,0)/n).toFixed(2);
-      const median = n%2===0 ? ((vals[n/2-1]+vals[n/2])/2).toFixed(2) : vals[Math.floor(n/2)].toFixed(1);
-      const variance = vals.reduce((s,v)=>s+(v-mean)*(v-mean),0)/n;
-      const sd = Math.sqrt(variance).toFixed(2);
+      const meanNum = vals.reduce((s,v)=>s+v,0)/n;
+      const medianNum = n%2===0 ? (vals[n/2-1]+vals[n/2])/2 : vals[Math.floor(n/2)];
+      const variance = vals.reduce((s,v)=>s+(v-meanNum)*(v-meanNum),0)/n;
+      const sdNum = Math.sqrt(variance);
       const label = allQs[qi-1] || 'Q'+qi;
 
-      html += `<tr><td class="left">${label}</td><td>${n}</td><td>${mean}</td><td>${median}</td><td>${sd}</td><td>${vals[0]}</td><td>${vals[n-1]}</td></tr>`;
+      html += `<tr><td class="left">${label}</td><td>${n}</td><td>${meanNum.toFixed(2)}</td><td>${medianNum.toFixed(2)}</td><td>${sdNum.toFixed(2)}</td><td>${vals[0]}</td><td>${vals[n-1]}</td></tr>`;
       modVals.push(vals);
-      grandTotalN += n;
     }
 
     // Cronbach's Alpha for this module
@@ -681,12 +680,11 @@ function exportSPSSReport() {
       if (vals.length === 0) continue;
       vals.sort((a,b) => a-b);
       const n = vals.length;
-      const mean = (vals.reduce((s,v)=>s+v,0)/n).toFixed(2);
-      const median = n%2===0 ? ((vals[n/2-1]+vals[n/2])/2).toFixed(2) : vals[Math.floor(n/2)].toFixed(1);
-      const variance = vals.reduce((s,v)=>s+(v-mean)*(v-mean),0)/n;
-      const sd = Math.sqrt(variance).toFixed(2);
+      const meanNum = vals.reduce((s,v)=>s+v,0)/n;
+      const variance = vals.reduce((s,v)=>s+(v-meanNum)*(v-meanNum),0)/n;
+      const sdNum = Math.sqrt(variance);
       const label = (allQs[qi-1]||'Q'+qi).slice(0, 20).padEnd(20);
-      report += `${label}\t${n}\t${mean}\t${median}\t${sd}\t${vals[0]}\t${vals[n-1]}\n`;
+      report += `${label}\t${n}\t${meanNum.toFixed(2)}\t${(n%2===0 ? ((vals[n/2-1]+vals[n/2])/2) : vals[Math.floor(n/2)]).toFixed(2)}\t${sdNum.toFixed(2)}\t${vals[0]}\t${vals[n-1]}\n`;
       modVals.push(vals);
     }
     const alpha = calcAlpha(modVals, responses.length);
