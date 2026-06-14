@@ -353,8 +353,9 @@ let cloudData = { teacher: [], student: [] };
 function getStorageKey() { return currentTab === 'teacher' ? 'teacher_survey_responses' : 'student_survey_responses'; }
 
 function getResponses() {
-  const remote = (cloudData[currentTab] || []).filter(r => r && !r._empty);
-  const local = JSON.parse(localStorage.getItem(getStorageKey()) || '[]').filter(r => r && !r._empty);
+  const isValid = r => r && r.timestamp && !r._empty && !r._init && Object.keys(r.likert || {}).length > 0;
+  const remote = (cloudData[currentTab] || []).filter(isValid);
+  const local = JSON.parse(localStorage.getItem(getStorageKey()) || '[]').filter(isValid);
   const seen = new Set();
   const merged = [...remote, ...local].filter(r => {
     const key = r.timestamp + (r.age || '') + (r.gender || r.teachYears || '');
@@ -435,11 +436,15 @@ function renderTable(responses) {
   } else {
     html += '<th>年龄</th><th>性别</th><th>学习时长</th><th>汉语水平</th><th>学习目的</th><th>工具频率</th><th>使用工具</th>';
   }
-  // Show first few Likert columns
-  for (let i = 1; i <= Math.min(6, Object.keys(responses[0].likert || {}).length); i++) {
-    html += `<th>Q${i}</th>`;
+
+  // Show all Likert columns (not truncated)
+  const maxQ = currentTab === 'teacher' ? 46 : 63;
+  const qsLabel = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  for (let i = 1; i <= maxQ; i++) {
+    const label = qsLabel[i-1] || ('Q'+i);
+    html += `<th title="${label}">Q${i}</th>`;
   }
-  html += '<th>...</th></tr></thead><tbody>';
+  html += '</tr></thead><tbody>';
 
   responses.forEach((r, idx) => {
     html += `<tr><td>${idx + 1}</td>`;
@@ -457,11 +462,11 @@ function renderTable(responses) {
       html += `<td>${r.toolFreq || ''}</td>`;
       html += `<td>${(r.toolsUsed || []).join(', ')}${r.toolsUsedOther ? '; '+r.toolsUsedOther : ''}</td>`;
     }
-    const likertKeys = Object.keys(r.likert || {}).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
-    for (let i = 0; i < Math.min(6, likertKeys.length); i++) {
-      html += `<td>${r.likert[likertKeys[i]] ?? '-'}</td>`;
+    // Show all Likert values
+    for (let i = 1; i <= maxQ; i++) {
+      html += `<td>${r.likert && r.likert['q'+i] != null ? r.likert['q'+i] : '-'}</td>`;
     }
-    html += `<td>...</td></tr>`;
+    html += `</tr>`;
   });
 
   html += '</tbody></table>';
