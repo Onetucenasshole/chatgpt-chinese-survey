@@ -168,6 +168,10 @@ table.data-table {
 <div class="toast" id="toast"></div>
 
 <script>
+// ==== JSONBin cloud config ====
+const JSONBIN_KEY = '$2a$10$kZoAs0pS9hzA5rvrM10mDuq7y1ASxJlZoISmJIkBBSbic9jyQMJVu';
+const JSONBIN_BI  = { teacher: '6a2e534cda38895dfebd6be2', student: '6a2e534df5f4af5e29eef0a9' };
+
 // ==== Password protection ====
 const PASSWORD = 'cdmx2026';
 let authenticated = sessionStorage.getItem('survey_auth') === 'true';
@@ -252,18 +256,44 @@ function switchTab(tab) {
   renderAll();
 }
 
-// ==== Data access ====
+// ==== Data access (cloud-first) ====
+let cloudData = { teacher: [], student: [] };
+
 function getStorageKey() { return currentTab === 'teacher' ? 'teacher_survey_responses' : 'student_survey_responses'; }
+
 function getResponses() {
-  return JSON.parse(localStorage.getItem(getStorageKey()) || '[]');
+  const remote = cloudData[currentTab] || [];
+  const local = JSON.parse(localStorage.getItem(getStorageKey()) || '[]');
+  // Merge: remote first, deduplicate by timestamp
+  const seen = new Set();
+  const merged = [...remote, ...local].filter(r => {
+    const key = r.timestamp + (r.age || '') + (r.gender || r.teachYears || '');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return merged;
 }
 
-// ==== Render ====
+function loadFromCloud(callback) {
+  const bid = JSONBIN_BI[currentTab];
+  fetch(`https://api.jsonbin.io/v3/b/${bid}/latest`, {
+    headers: { 'X-Master-Key': JSONBIN_KEY }
+  }).then(r => r.json()).then(j => {
+    cloudData[currentTab] = (j.record || []).filter(r => !r._init);
+    if (callback) callback();
+  }).catch(() => {
+    if (callback) callback(); // fallback to local only
+  });
+}
+
 function renderAll() {
-  const responses = getResponses();
-  renderStats(responses);
-  renderTable(responses);
-  renderSummary(responses);
+  loadFromCloud(() => {
+    const responses = getResponses();
+    renderStats(responses);
+    renderTable(responses);
+    renderSummary(responses);
+  });
 }
 
 function renderStats(responses) {
@@ -468,6 +498,13 @@ function clearData() {
   if (responses.length === 0) { showToast('没有数据可清空'); return; }
   if (confirm(`确定要清空所有${currentTab === 'teacher' ? '教师' : '学生'}问卷数据（共 ${responses.length} 条记录）吗？\n\n⚠️ 此操作不可恢复！建议先导出 CSV 备份。`)) {
     localStorage.setItem(getStorageKey(), '[]');
+    cloudData[currentTab] = [];
+    // Clear cloud bin too
+    fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BI[currentTab]}`, {
+      method: 'PUT',
+      headers: { 'X-Master-Key': JSONBIN_KEY, 'Content-Type': 'application/json' },
+      body: '[]'
+    }).catch(() => {});
     renderAll();
     showToast('🗑️ 数据已清空');
   }

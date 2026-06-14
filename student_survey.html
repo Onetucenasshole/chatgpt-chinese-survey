@@ -311,7 +311,11 @@ input[type="text"]:focus, input[type="number"]:focus { border-color: #8e44ad; ou
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-// ==== EmailJS config ====
+// ==== Configuración de recolección de datos ====
+const JSONBIN_KEY  = '$2a$10$kZoAs0pS9hzA5rvrM10mDuq7y1ASxJlZoISmJIkBBSbic9jyQMJVu';
+const JSONBIN_URL  = 'https://api.jsonbin.io/v3/b/6a2e534df5f4af5e29eef0a9';
+const JSONBIN_GET  = JSONBIN_URL + '/latest';
+
 emailjs.init('XQbocgW9TKpzObgD');
 const EMAIL_TO   = 'zyuqi287@gmail.com';
 const EMAIL_SID  = 'service_survey_gmail';
@@ -574,7 +578,19 @@ function submitSurvey() {
   responses.push(data);
   localStorage.setItem('student_survey_responses', JSON.stringify(responses));
 
-  // Send email via EmailJS
+  // Send to JSONBin cloud storage
+  fetch(JSONBIN_GET, { headers: { 'X-Master-Key': JSONBIN_KEY } })
+    .then(r => r.json()).then(j => {
+      const records = (j.record || []).filter(r => !r._init);
+      records.push(data);
+      return fetch(JSONBIN_URL, {
+        method: 'PUT',
+        headers: { 'X-Master-Key': JSONBIN_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(records)
+      });
+    }).catch(() => {});
+
+  // Also send email via EmailJS
   emailjs.send(EMAIL_SID, EMAIL_TID, {
     survey_type: '学生问卷',
     submit_time: new Date(data.timestamp).toLocaleString('es-MX'),
