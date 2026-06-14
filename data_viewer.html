@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问卷数据管理 · ChatGPT辅助教学调查</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f0f2f5; color: #1a1a1a; line-height: 1.6;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+.header {
+  background: linear-gradient(135deg, #1a5276 0%, #6c3483 100%);
+  color: #fff; padding: 32px; border-radius: 16px; margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(26,82,118,0.2);
+}
+.header h1 { font-size: 22px; margin-bottom: 8px; }
+.header p { opacity: 0.85; font-size: 14px; }
+
+.toolbar {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center;
+}
+.btn {
+  padding: 10px 20px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: #2e86c1; color: #fff; }
+.btn-primary:hover { background: #2471a3; }
+.btn-green { background: #27ae60; color: #fff; }
+.btn-green:hover { background: #219a52; }
+.btn-purple { background: #8e44ad; color: #fff; }
+.btn-purple:hover { background: #7d3c98; }
+.btn-outline { background: #fff; color: #555; border: 2px solid #ddd; }
+.btn-outline:hover { border-color: #999; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-danger:hover { background: #c0392b; }
+
+.tabs {
+  display: flex; gap: 4px; background: #e0e4e8; padding: 4px; border-radius: 12px;
+  margin-bottom: 20px;
+}
+.tab {
+  flex: 1; padding: 10px 20px; border: none; border-radius: 10px; font-size: 14px;
+  font-weight: 600; cursor: pointer; background: transparent; color: #666; transition: .2s;
+}
+.tab.active { background: #fff; color: #1a5276; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+
+.card {
+  background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.card h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card {
+  background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  text-align: center;
+}
+.stat-card .value { font-size: 32px; font-weight: 700; color: #1a5276; }
+.stat-card .label { font-size: 12px; color: #888; margin-top: 4px; }
+
+table.data-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.data-table th {
+  background: #f7f9fc; padding: 10px 8px; text-align: left; font-weight: 600;
+  color: #555; border-bottom: 2px solid #e0e4e8; white-space: nowrap;
+}
+.data-table td {
+  padding: 8px; border-bottom: 1px solid #f0f2f5; color: #444;
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+}
+.data-table tr:hover td { background: #f8fafc; }
+
+.table-wrap { overflow-x: auto; }
+
+.empty-state {
+  text-align: center; padding: 60px 20px; color: #999;
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+.summary-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 13px;
+}
+.summary-item .question { color: #444; flex: 1; }
+.summary-item .mean {
+  background: #eaf4fb; color: #2e86c1; padding: 2px 10px; border-radius: 12px;
+  font-weight: 600; font-size: 13px; margin-left: 12px;
+}
+
+.hidden { display: none !important; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 12px 28px; border-radius: 24px;
+  font-size: 14px; z-index: 2000; opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 600px) {
+  .container { padding: 12px; }
+  .header { padding: 20px; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📊 问卷数据管理</h1>
+    <p>墨西哥城孔子学院 · ChatGPT辅助汉语教学接受度与需求调查</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('teacher')" id="tabTeacher">🧑‍🏫 教师问卷</button>
+    <button class="tab" onclick="switchTab('student')" id="tabStudent">👩‍🎓 学生问卷</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid" id="statGrid"></div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-green" onclick="exportCSV()">📥 导出 CSV</button>
+    <button class="btn btn-purple" onclick="importData()">📤 导入数据 (JSON)</button>
+    <button class="btn btn-outline" onclick="copyShareLink()">🔗 复制问卷链接</button>
+    <button class="btn btn-danger" onclick="clearData()" style="margin-left:auto;">🗑️ 清空数据</button>
+  </div>
+
+  <!-- Data Table -->
+  <div class="card">
+    <h3 id="dataTitle">教师问卷 · 提交记录</h3>
+    <div class="table-wrap" id="dataTable"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="icon">📭</div>
+      <p>暂无提交记录</p>
+      <p style="font-size:12px;color:#bbb;">提交问卷后，记录将显示在此页面</p>
+    </div>
+  </div>
+
+  <!-- Summary Statistics -->
+  <div class="card" id="summaryCard">
+    <h3>📈 量表统计（平均值）</h3>
+    <div id="summaryContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentTab = 'teacher';
+
+// ==== Likert question labels ====
+const teacherQuestions = [
+  '了解ChatGPT基本功能', '使用过ChatGPT', '了解可用于辅助汉语教学',
+  '能熟练向ChatGPT提问', '对AI教育工具接受度较高',
+  'ChatGPT可提高备课效率', '可辅助生成教学材料', '可提供个性化学习支持',
+  '可提高学生学习兴趣', '可促进教学方式创新',
+  '操作方式比较简单', '容易融入日常教学', '不会明显增加教学负担',
+  '能调整ChatGPT生成内容', '能判断内容是否适合课堂', '适合多教学环节',
+  '快速生成课文/对话/阅读材料', '设计不同水平课堂活动', '生成词汇语法句型练习',
+  '设计听说读写综合训练', '设计文化教学内容', '批改/反馈学生写作',
+  '改进教学方案/教学反思', '生成本土化教学材料', '中西文化比较教学设计',
+  '设计课堂评价/学习测评',
+  '担心内容存在事实错误', '担心教学内容不够准确', '担心内容不符合学生水平',
+  '担心削弱教学设计能力', '担心影响学生独立思考', '担心隐私/数据安全',
+  '缺乏使用ChatGPT专业知识',
+  '希望接受系统培训', '希望与其他教师交流经验', '希望建立AI教学资源库',
+  '希望了解如何判断修改内容', '希望获得使用案例', '希望机构制定使用规范',
+  '对汉语教学具有积极意义', '可以提升工作效率', '可以改善学习体验',
+  '愿意持续关注应用', '愿意在合适环节使用', '有培训支持更愿意使用',
+  '有必要进一步研究教学应用'
+];
+
+const studentQuestions = [
+  '听说过ChatGPT', '知道可用于语言学习', '知道可帮助学习中文',
+  '知道如何提出学习中文问题', '知道可解释词语语法句子', '知道可练习汉语对话',
+  '知道回答不一定完全正确',
+  '使用方法比较简单', '可容易提出中文学习问题', '可理解中文学习解释',
+  '可调整提问方式', '比普通网页更方便', '比传统工具更灵活',
+  '可随时随地帮助学习', '不理解内容时可寻求帮助', '初级学习者也可以使用',
+  '愿意学习更有效使用',
+  '理解听力材料中的词语', '整理听力材料主要内容', '解释听力练习难点',
+  '根据听力内容复习',
+  '进行简单中文对话练习', '准备课堂口语表达', '练习日常中文对话',
+  '改正口语表达错误', '心理压力较小', '增加开口说中文机会',
+  '理解中文课文', '解释阅读材料生词', '分析句子结构',
+  '总结阅读材料主要意思', '理解文化内容',
+  '修改中文句子', '发现写作语法错误', '学习更合适中文表达',
+  '组织中文写作思路', '提高中文写作信心',
+  '增加学习中文兴趣', '觉得学习更有趣', '更愿意用中文表达',
+  '减少学习紧张感', '更有信心',
+  '解释通常是准确的', '对初级学习者回答易理解', '能根据水平调整回答',
+  '有时可能给出错误答案', '需要自己判断答案', '不清楚时会向老师确认',
+  '回答质量影响继续使用意愿',
+  '担心减少独立思考', '担心不认真听课', '担心错误回答影响学习',
+  '不知如何判断回答正确', '做作业会影响学习效果', '不能理解初级学习者问题',
+  '解释太难', '需要在老师指导下使用',
+  '是有价值的学习工具', '符合当前学习需要', '对初级学习者比较友好',
+  '能提高学习满意度', '可弥补传统课堂不足', '愿意接受辅助中文学习'
+];
+
+// ==== Tab switching ====
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tab === 'teacher' ? 'tabTeacher' : 'tabStudent').classList.add('active');
+  document.getElementById('dataTitle').textContent = (tab === 'teacher' ? '教师问卷' : '学生问卷') + ' · 提交记录';
+  renderAll();
+}
+
+// ==== Data access ====
+function getStorageKey() { return currentTab === 'teacher' ? 'teacher_survey_responses' : 'student_survey_responses'; }
+function getResponses() {
+  return JSON.parse(localStorage.getItem(getStorageKey()) || '[]');
+}
+
+// ==== Render ====
+function renderAll() {
+  const responses = getResponses();
+  renderStats(responses);
+  renderTable(responses);
+  renderSummary(responses);
+}
+
+function renderStats(responses) {
+  const grid = document.getElementById('statGrid');
+  if (responses.length === 0) {
+    grid.innerHTML = '<div class="stat-card"><div class="value">0</div><div class="label">提交数量</div></div>';
+    return;
+  }
+  const typeLabel = currentTab === 'teacher' ? '教师' : '学生';
+
+  let avgAge = 0, sumAge = 0, ageCount = 0;
+  responses.forEach(r => { if (r.age) { sumAge += parseInt(r.age) || 0; ageCount++; } });
+  avgAge = ageCount > 0 ? Math.round(sumAge / ageCount) : '-';
+
+  // Count completed Likert
+  const avgCompletion = Math.round(responses.reduce((sum, r) => {
+    const vals = Object.values(r.likert || {}).filter(v => v !== null);
+    const total = Object.keys(r.likert || {}).length || 1;
+    return sum + (vals.length / total);
+  }, 0) / responses.length * 100);
+
+  grid.innerHTML = `
+    <div class="stat-card"><div class="value">${responses.length}</div><div class="label">${typeLabel}问卷提交数</div></div>
+    <div class="stat-card"><div class="value">${avgAge}</div><div class="label">平均年龄</div></div>
+    <div class="stat-card"><div class="value">${avgCompletion}%</div><div class="label">平均完成度</div></div>
+    <div class="stat-card"><div class="value">${new Date(responses[responses.length-1].timestamp).toLocaleDateString('zh-CN')}</div><div class="label">最近提交</div></div>
+  `;
+}
+
+function renderTable(responses) {
+  const container = document.getElementById('dataTable');
+  const empty = document.getElementById('emptyState');
+
+  if (responses.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  let html = '<table class="data-table"><thead><tr>';
+  html += '<th>#</th><th>时间</th>';
+
+  if (currentTab === 'teacher') {
+    html += '<th>年龄</th><th>教龄</th><th>教学对象</th><th>学生水平</th><th>拉美经验</th><th>授课语言</th><th>学校类型</th><th>使用AI</th>';
+  } else {
+    html += '<th>年龄</th><th>性别</th><th>学习时长</th><th>汉语水平</th><th>学习目的</th><th>工具频率</th><th>使用工具</th>';
+  }
+  // Show first few Likert columns
+  for (let i = 1; i <= Math.min(6, Object.keys(responses[0].likert || {}).length); i++) {
+    html += `<th>Q${i}</th>`;
+  }
+  html += '<th>...</th></tr></thead><tbody>';
+
+  responses.forEach((r, idx) => {
+    html += `<tr><td>${idx + 1}</td>`;
+    html += `<td>${new Date(r.timestamp).toLocaleString('zh-CN')}</td>`;
+    if (currentTab === 'teacher') {
+      html += `<td>${r.age || ''}</td><td>${r.teachYears || ''}</td>`;
+      html += `<td>${(r.targetStudents || []).join(', ')}</td>`;
+      html += `<td>${(r.studentLevel || []).join(', ')}</td>`;
+      html += `<td>${r.latinExp || ''}</td><td>${(r.teachLang || []).join(', ')}</td>`;
+      html += `<td>${r.schoolType || ''}</td><td>${r.useAI || ''}</td>`;
+    } else {
+      html += `<td>${r.age || ''}</td><td>${r.gender || ''}</td>`;
+      html += `<td>${r.studyDuration || ''}</td><td>${r.hskLevel || ''}</td>`;
+      html += `<td>${(r.studyPurpose || []).join(', ')}${r.studyPurposeOther ? '; '+r.studyPurposeOther : ''}</td>`;
+      html += `<td>${r.toolFreq || ''}</td>`;
+      html += `<td>${(r.toolsUsed || []).join(', ')}${r.toolsUsedOther ? '; '+r.toolsUsedOther : ''}</td>`;
+    }
+    const likertKeys = Object.keys(r.likert || {}).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+    for (let i = 0; i < Math.min(6, likertKeys.length); i++) {
+      html += `<td>${r.likert[likertKeys[i]] ?? '-'}</td>`;
+    }
+    html += `<td>...</td></tr>`;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderSummary(responses) {
+  const container = document.getElementById('summaryContent');
+  if (responses.length === 0) {
+    container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">暂无数据</p>';
+    return;
+  }
+
+  const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  const likertData = {};
+  responses.forEach(r => {
+    Object.entries(r.likert || {}).forEach(([k, v]) => {
+      if (v !== null) {
+        if (!likertData[k]) likertData[k] = { sum: 0, count: 0 };
+        likertData[k].sum += v;
+        likertData[k].count++;
+      }
+    });
+  });
+
+  let html = '';
+  const keys = Object.keys(likertData).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+  keys.forEach((k, i) => {
+    const d = likertData[k];
+    const mean = (d.sum / d.count).toFixed(2);
+    const qIdx = parseInt(k.slice(1)) - 1;
+    const label = questions[qIdx] || `Q${qIdx + 1}`;
+    html += `<div class="summary-item"><span class="question">${i + 1}. ${label}</span><span class="mean">M = ${mean}</span></div>`;
+  });
+  container.innerHTML = html;
+}
+
+// ==== Export CSV ====
+function exportCSV() {
+  const responses = getResponses();
+  if (responses.length === 0) { showToast('⚠️ 没有数据可导出'); return; }
+
+  const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  let csv = '\uFEFF'; // BOM for Excel
+
+  // Headers
+  let headers = ['序号', '提交时间'];
+  if (currentTab === 'teacher') {
+    headers.push('年龄', '教龄', '教学对象', '学生汉语水平', '拉美任教经验', '授课语言', '学校类型', '是否使用AI');
+  } else {
+    headers.push('年龄', '性别', '学习汉语时间', '汉语水平', '学习目的', '学习目的(其他)', '数字工具频率', '使用工具', '使用工具(其他)');
+  }
+  const likertHeaders = questions.map((q, i) => `Q${i+1}: ${q}`);
+  csv += headers.concat(likertHeaders).join(',') + '\n';
+
+  responses.forEach((r, idx) => {
+    let row = [idx + 1, r.timestamp];
+    if (currentTab === 'teacher') {
+      row.push(r.age, r.teachYears, (r.targetStudents || []).join(';'), (r.studentLevel || []).join(';'),
+               r.latinExp, (r.teachLang || []).join(';'), r.schoolType, r.useAI);
+    } else {
+      row.push(r.age, r.gender, r.studyDuration, r.hskLevel, (r.studyPurpose || []).join(';'),
+               r.studyPurposeOther || '', r.toolFreq, (r.toolsUsed || []).join(';'), r.toolsUsedOther || '');
+    }
+    questions.forEach((_, i) => {
+      const k = `q${i + 1}`;
+      row.push(r.likert && r.likert[k] !== null && r.likert[k] !== undefined ? r.likert[k] : '');
+    });
+    csv += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${currentTab === 'teacher' ? '教师' : '学生'}问卷数据_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ CSV 已下载');
+}
+
+// ==== Import JSON ====
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.multiple = true;
+  input.onchange = () => {
+    const files = Array.from(input.files);
+    let imported = 0;
+    const existing = getResponses();
+
+    Promise.all(files.map(f => f.text())).then(contents => {
+      contents.forEach(text => {
+        try {
+          const data = JSON.parse(text);
+          const items = Array.isArray(data) ? data : [data];
+          items.forEach(item => {
+            if (item.type === currentTab) {
+              existing.push(item);
+              imported++;
+            }
+          });
+        } catch(e) {}
+      });
+      localStorage.setItem(getStorageKey(), JSON.stringify(existing));
+      renderAll();
+      showToast(`✅ 导入了 ${imported} 条记录`);
+    });
+  };
+  input.click();
+}
+
+// ==== Copy link ====
+function copyShareLink() {
+  const links = {
+    teacher: 'teacher_survey.html',
+    student: 'student_survey.html'
+  };
+  const url = window.location.href.replace('data_viewer.html', links[currentTab]);
+  navigator.clipboard.writeText(url).then(() => showToast('📋 链接已复制'));
+}
+
+// ==== Clear data ====
+function clearData() {
+  const responses = getResponses();
+  if (responses.length === 0) { showToast('没有数据可清空'); return; }
+  if (confirm(`确定要清空所有${currentTab === 'teacher' ? '教师' : '学生'}问卷数据（共 ${responses.length} 条记录）吗？\n\n⚠️ 此操作不可恢复！建议先导出 CSV 备份。`)) {
+    localStorage.setItem(getStorageKey(), '[]');
+    renderAll();
+    showToast('🗑️ 数据已清空');
+  }
+}
+
+// ==== Toast ====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ==== Load ====
+renderAll();
+</script>
+</body>
+</html>

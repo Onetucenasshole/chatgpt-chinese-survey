@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关于ChatGPT辅助教学的接受度与需求的调查（教师问卷）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f0f2f5;
+  color: #1a1a1a;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1a5276 0%, #2e86c1 100%);
+  color: #fff;
+  padding: 40px 32px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(26, 82, 118, 0.2);
+}
+.header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.header .subtitle {
+  opacity: 0.85;
+  font-size: 14px;
+}
+.header .badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* Introduction Card */
+.intro-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-left: 4px solid #2e86c1;
+}
+.intro-card h3 { color: #1a5276; margin-bottom: 12px; font-size: 16px; }
+.intro-card p { color: #555; font-size: 14px; margin-bottom: 8px; }
+.intro-card .notes { font-size: 13px; color: #888; margin-top: 12px; }
+
+/* Section */
+.section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a5276;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e8f0f8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title .num {
+  background: #2e86c1;
+  color: #fff;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.form-group .hint {
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
+}
+
+/* Input types */
+input[type="text"], input[type="number"] {
+  width: 100%;
+  max-width: 320px;
+  padding: 10px 14px;
+  border: 2px solid #e0e4e8;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border-color .2s;
+}
+input[type="text"]:focus, input[type="number"]:focus {
+  border-color: #2e86c1;
+  outline: none;
+}
+
+/* Radio & Checkbox groups */
+.options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.option-item {
+  position: relative;
+}
+.option-item input { display: none; }
+.option-item label.opt-label {
+  display: inline-block;
+  padding: 8px 18px;
+  border: 2px solid #e0e4e8;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  color: #555;
+  transition: all .2s;
+  user-select: none;
+}
+.option-item input:checked + label.opt-label {
+  border-color: #2e86c1;
+  background: #eaf4fb;
+  color: #1a5276;
+  font-weight: 600;
+}
+.option-item label.opt-label:hover {
+  border-color: #2e86c1;
+}
+
+/* Likert Scale */
+.likert-table {
+  width: 100%;
+  overflow-x: auto;
+}
+.likert-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.likert-table th, .likert-table td {
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 13px;
+}
+.likert-table thead th {
+  color: #888;
+  font-weight: 500;
+  font-size: 12px;
+  border-bottom: 2px solid #e8f0f8;
+}
+.likert-table thead th:first-child {
+  text-align: left;
+  width: 55%;
+}
+.likert-table tbody td {
+  border-bottom: 1px solid #f0f2f5;
+}
+.likert-table tbody td:first-child {
+  text-align: left;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+}
+.likert-table tbody tr:hover td {
+  background: #f8fafc;
+}
+.likert-radio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all .15s;
+}
+.likert-radio input { display: none; }
+.likert-radio .dot {
+  width: 20px; height: 20px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.likert-radio input:checked ~ .dot {
+  border-color: #2e86c1;
+  background: #2e86c1;
+  box-shadow: 0 0 0 3px rgba(46,134,193,0.15);
+}
+.likert-radio input:checked ~ .dot::after {
+  content: '';
+  width: 6px; height: 6px;
+  background: #fff;
+  border-radius: 50%;
+}
+
+/* Submit area */
+.submit-area {
+  text-align: center;
+  padding: 30px;
+}
+.btn-submit {
+  background: linear-gradient(135deg, #1a5276 0%, #2e86c1 100%);
+  color: #fff;
+  border: none;
+  padding: 14px 56px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 16px rgba(46,134,193,0.3);
+}
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(46,134,193,0.4);
+}
+.btn-submit:active { transform: translateY(0); }
+
+/* Validation */
+.error-msg { color: #e74c3c; font-size: 12px; margin-top: 4px; display: none; }
+.error-msg.show { display: block; }
+
+/* Success overlay */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  visibility: hidden; opacity: 0; transition: .3s;
+}
+.overlay.show { visibility: visible; opacity: 1; }
+.overlay-card {
+  background: #fff; border-radius: 20px; padding: 48px 40px;
+  text-align: center; max-width: 440px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.overlay-card .icon { font-size: 64px; margin-bottom: 16px; }
+.overlay-card h2 { color: #1a5276; margin-bottom: 12px; }
+.overlay-card p { color: #666; font-size: 14px; }
+
+/* Progress */
+.progress-bar-wrap {
+  position: sticky; top: 0; z-index: 100;
+  background: #f0f2f5; padding: 12px 0;
+}
+.progress-bar {
+  height: 4px; background: #e0e4e8; border-radius: 2px;
+  transition: width .3s;
+}
+.progress-inner {
+  height: 100%; background: linear-gradient(90deg, #2e86c1, #1a5276);
+  border-radius: 2px; transition: width .4s;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .container { padding: 12px; }
+  .header { padding: 24px 20px; }
+  .header h1 { font-size: 20px; }
+  .section { padding: 16px; }
+  .likert-table { font-size: 11px; }
+  .likert-table th, .likert-table td { padding: 6px 2px; }
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 12px 28px; border-radius: 24px;
+  font-size: 14px; z-index: 2000; opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap">
+  <div class="container">
+    <div class="progress-bar"><div class="progress-inner" id="progressBar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>关于ChatGPT辅助教学的接受度与需求的调查</h1>
+    <p class="subtitle">墨西哥城孔子学院 · 汉语教师问卷</p>
+    <span class="badge">🧑‍🏫 教师版</span>
+  </div>
+
+  <!-- Introduction -->
+  <div class="intro-card">
+    <h3>📋 尊敬的老师，您好！</h3>
+    <p>我是墨西哥城孔子学院的一名汉语教师，目前正在开展一项关于ChatGPT辅助汉语教学的接受度与需求的调查。本问卷旨在了解汉语教师对ChatGPT等人工智能工具在汉语教学与学习中的使用情况、接受程度、实际需求以及相关顾虑，为今后更好地将人工智能技术应用于汉语教学提供参考。</p>
+    <p>本问卷仅用于教学研究与数据分析，不涉及任何商业用途。问卷采用<strong>匿名方式</strong>填写，所有回答都将严格保密，调查结果只以整体统计形式呈现，不会泄露您的个人信息。</p>
+    <div class="notes">
+      📌 请选择最符合您意见的选项。<br>
+      📌 无特别说明的，都是单选题。<br>
+      📌 本问卷大约需要 <strong>5-8分钟</strong> 完成。<br>
+      📌 非常感谢您的支持与配合！
+    </div>
+  </div>
+
+  <form id="surveyForm" onsubmit="return false;">
+
+    <!-- ====== 基本信息 ====== -->
+    <div class="section">
+      <div class="section-title"><span class="num">1</span> 基本信息</div>
+
+      <div class="form-group">
+        <label>年龄</label>
+        <input type="number" id="age" min="18" max="99" placeholder="请输入年龄" required>
+        <span class="error-msg" id="err-age"></span>
+      </div>
+
+      <div class="form-group">
+        <label>教龄（年）</label>
+        <input type="number" id="teachYears" min="0" max="60" step="0.5" placeholder="请输入教龄" required>
+        <span class="error-msg" id="err-teachYears"></span>
+      </div>
+
+      <div class="form-group">
+        <label>教学对象 <span class="hint">（可多选）</span></label>
+        <div class="options-grid" id="targetStudents">
+          <div class="option-item"><input type="checkbox" id="ts1" name="targetStudents" value="学龄前儿童"><label class="opt-label" for="ts1">学龄前儿童</label></div>
+          <div class="option-item"><input type="checkbox" id="ts2" name="targetStudents" value="小学生"><label class="opt-label" for="ts2">小学生</label></div>
+          <div class="option-item"><input type="checkbox" id="ts3" name="targetStudents" value="中学生"><label class="opt-label" for="ts3">中学生</label></div>
+          <div class="option-item"><input type="checkbox" id="ts4" name="targetStudents" value="大学生"><label class="opt-label" for="ts4">大学生</label></div>
+          <div class="option-item"><input type="checkbox" id="ts5" name="targetStudents" value="上班族"><label class="opt-label" for="ts5">上班族</label></div>
+          <div class="option-item"><input type="checkbox" id="ts6" name="targetStudents" value="退休人士"><label class="opt-label" for="ts6">退休人士</label></div>
+        </div>
+        <span class="error-msg" id="err-targetStudents"></span>
+      </div>
+
+      <div class="form-group">
+        <label>学生汉语水平 <span class="hint">（可多选）</span></label>
+        <div class="options-grid" id="studentLevel">
+          <div class="option-item"><input type="checkbox" id="sl1" name="studentLevel" value="YCT 1"><label class="opt-label" for="sl1">YCT 1</label></div>
+          <div class="option-item"><input type="checkbox" id="sl2" name="studentLevel" value="YCT 2"><label class="opt-label" for="sl2">YCT 2</label></div>
+          <div class="option-item"><input type="checkbox" id="sl3" name="studentLevel" value="HSK 1"><label class="opt-label" for="sl3">HSK 1</label></div>
+          <div class="option-item"><input type="checkbox" id="sl4" name="studentLevel" value="HSK 2"><label class="opt-label" for="sl4">HSK 2</label></div>
+          <div class="option-item"><input type="checkbox" id="sl5" name="studentLevel" value="HSK 3"><label class="opt-label" for="sl5">HSK 3</label></div>
+          <div class="option-item"><input type="checkbox" id="sl6" name="studentLevel" value="HSK 4"><label class="opt-label" for="sl6">HSK 4</label></div>
+          <div class="option-item"><input type="checkbox" id="sl7" name="studentLevel" value="HSK 5"><label class="opt-label" for="sl7">HSK 5</label></div>
+          <div class="option-item"><input type="checkbox" id="sl8" name="studentLevel" value="HSK 6"><label class="opt-label" for="sl8">HSK 6</label></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>此前有无墨西哥或拉美国家任教经验</label>
+        <div class="options-grid" id="latinExp">
+          <div class="option-item"><input type="radio" id="le1" name="latinExp" value="有"><label class="opt-label" for="le1">有</label></div>
+          <div class="option-item"><input type="radio" id="le2" name="latinExp" value="无"><label class="opt-label" for="le2">无</label></div>
+        </div>
+        <span class="error-msg" id="err-latinExp"></span>
+      </div>
+
+      <div class="form-group">
+        <label>授课语言 <span class="hint">（可多选）</span></label>
+        <div class="options-grid" id="teachLang">
+          <div class="option-item"><input type="checkbox" id="tl1" name="teachLang" value="中文"><label class="opt-label" for="tl1">中文</label></div>
+          <div class="option-item"><input type="checkbox" id="tl2" name="teachLang" value="英语"><label class="opt-label" for="tl2">英语</label></div>
+          <div class="option-item"><input type="checkbox" id="tl3" name="teachLang" value="西班牙语"><label class="opt-label" for="tl3">西班牙语</label></div>
+        </div>
+        <span class="error-msg" id="err-teachLang"></span>
+      </div>
+
+      <div class="form-group">
+        <label>您所在的学校类型</label>
+        <div class="options-grid" id="schoolType">
+          <div class="option-item"><input type="radio" id="st1" name="schoolType" value="公办"><label class="opt-label" for="st1">公办</label></div>
+          <div class="option-item"><input type="radio" id="st2" name="schoolType" value="民办"><label class="opt-label" for="st2">民办</label></div>
+          <div class="option-item"><input type="radio" id="st3" name="schoolType" value="培训机构"><label class="opt-label" for="st3">培训机构</label></div>
+          <div class="option-item"><input type="radio" id="st4" name="schoolType" value="其他"><label class="opt-label" for="st4">其他</label></div>
+        </div>
+        <span class="error-msg" id="err-schoolType"></span>
+      </div>
+
+      <div class="form-group">
+        <label>您平时是否使用AI辅助教学</label>
+        <div class="options-grid" id="useAI">
+          <div class="option-item"><input type="radio" id="ai1" name="useAI" value="是"><label class="opt-label" for="ai1">是</label></div>
+          <div class="option-item"><input type="radio" id="ai2" name="useAI" value="否"><label class="opt-label" for="ai2">否</label></div>
+        </div>
+        <span class="error-msg" id="err-useAI"></span>
+      </div>
+    </div>
+
+    <!-- ====== Likert Scale Intro ====== -->
+    <div class="section" style="background: #f7fafd; border: 1px solid #e0ecf5;">
+      <div class="section-title"><span class="num">📊</span> 问卷模块反馈</div>
+      <p style="font-size:13px;color:#666;line-height:1.8;">
+        本部分内容包括：对ChatGPT的了解与使用情况、教学价值的认知、使用GPT的便利性与可操作性、实际教学需求、使用的顾虑、培训与支持需求、总体评价与未来使用意愿等。您需要对ChatGPT的接受度及信息量进行评价。请根据您的实际教学体验和个人感受作答，选择最符合您观点的选项。
+      </p>
+      <p style="font-size:13px;color:#666;margin-top:8px;">
+        本问卷不存在对错之分，所有问题均基于您的主观感受作答。请依据下列量表选择您的认同程度：
+      </p>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap;">
+        <span style="background:#fff;padding:6px 16px;border-radius:20px;font-size:12px;color:#888;">1 = 完全不同意</span>
+        <span style="background:#fff;padding:6px 16px;border-radius:20px;font-size:12px;color:#888;">2 = 不同意</span>
+        <span style="background:#fff;padding:6px 16px;border-radius:20px;font-size:12px;color:#888;">3 = 不确定</span>
+        <span style="background:#fff;padding:6px 16px;border-radius:20px;font-size:12px;color:#888;">4 = 同意</span>
+        <span style="background:#fff;padding:6px 16px;border-radius:20px;font-size:12px;color:#888;">5 = 完全同意</span>
+      </div>
+    </div>
+
+    <!-- Likert sections rendered by JS -->
+    <div id="likertSections"></div>
+
+    <!-- Submit -->
+    <div class="submit-area">
+      <button type="button" class="btn-submit" onclick="submitSurvey()">✅ 提交问卷</button>
+    </div>
+  </form>
+
+  <!-- Thank you overlay -->
+  <div class="overlay" id="thankYouOverlay">
+    <div class="overlay-card">
+      <div class="icon">🎉</div>
+      <h2>提交成功！</h2>
+      <p>非常感谢您抽出宝贵时间填写本问卷！<br>您的回答将为ChatGPT辅助汉语教学研究提供重要参考。</p>
+      <button class="btn-copy" onclick="copyDataToClipboard()" style="margin-top:20px;padding:10px 28px;background:#2e86c1;color:#fff;border:none;border-radius:24px;font-size:14px;cursor:pointer;">📋 复制我的答卷数据</button>
+      <p style="font-size:11px;color:#999;margin-top:8px;">请将复制的数据发送给问卷发起人</p>
+      <button onclick="closeThankYou()" style="margin-top:16px;background:none;border:none;color:#888;cursor:pointer;font-size:13px;">关闭</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ==== Likert Question Data ====
+const likertSections = [
+  {
+    title: '一、对 ChatGPT 的了解与使用情况',
+    questions: [
+      '我了解 ChatGPT 等人工智能工具的基本功能。',
+      '我曾经在工作、学习或生活中使用过 ChatGPT。',
+      '我了解 ChatGPT 可以用于辅助汉语教学。',
+      '我能够较熟练地向 ChatGPT 提出问题或指令。',
+      '我认为自己对人工智能教育工具的接受程度较高。'
+    ]
+  },
+  {
+    title: '二、对 ChatGPT 教学价值的认知',
+    questions: [
+      '我认为 ChatGPT 可以提高汉语教学备课效率。',
+      '我认为 ChatGPT 可以辅助生成汉语教学材料。',
+      '我认为 ChatGPT 可以为不同水平的学习者提供个性化学习支持。',
+      '我认为 ChatGPT 可以提高学生学习汉语的兴趣。',
+      '我认为 ChatGPT 可以促进汉语教学方式的创新。'
+    ]
+  },
+  {
+    title: '三、使用 ChatGPT 的便利性与可操作性',
+    questions: [
+      '我认为 ChatGPT 的操作方式比较简单。',
+      '我认为 ChatGPT 容易融入日常汉语教学工作。',
+      '我认为使用 ChatGPT 不会明显增加我的教学负担。',
+      '我能够根据教学目标调整 ChatGPT 生成的内容。',
+      '我能够判断 ChatGPT 生成内容是否适合用于汉语课堂。',
+      '我认为 ChatGPT 适合用于课前备课、课中辅助或课后反馈等多个教学环节。'
+    ]
+  },
+  {
+    title: '四、实际教学需求',
+    questions: [
+      '我需要 ChatGPT 帮助我快速生成汉语课文、对话或阅读材料。',
+      '我需要 ChatGPT 帮助我设计适合不同汉语水平学生的课堂活动。',
+      '我需要 ChatGPT 帮助我生成词汇、语法和句型练习。',
+      '我需要 ChatGPT 帮助我设计听说读写综合训练任务。',
+      '我需要 ChatGPT 帮助我设计文化教学内容。',
+      '我需要 ChatGPT 帮助我批改或反馈学生的汉语写作。',
+      '我需要 ChatGPT 帮助我改进教学方案或进行教学反思。',
+      '我需要针对墨西哥学生特点生成更本土化的汉语教学材料。',
+      '我需要 ChatGPT 帮助我进行中西文化比较类教学设计。',
+      '我需要 ChatGPT 帮助我设计课堂评价或学习测评。'
+    ]
+  },
+  {
+    title: '五、使用 ChatGPT 的顾虑',
+    questions: [
+      '我担心 ChatGPT 生成的内容存在事实错误。',
+      '我担心 ChatGPT 生成的汉语教学内容不够准确。',
+      '我担心 ChatGPT 生成的内容不符合学生的实际汉语水平。',
+      '我担心过度依赖 ChatGPT 会削弱教师的教学设计能力。',
+      '我担心学生使用 ChatGPT 会影响其独立思考能力。',
+      '我担心在教学中使用 ChatGPT 会涉及隐私或数据安全问题。',
+      '我担心自己缺乏有效使用 ChatGPT 的专业知识。'
+    ]
+  },
+  {
+    title: '六、培训与支持需求',
+    questions: [
+      '我希望接受关于 ChatGPT 辅助汉语教学的系统培训。',
+      '我希望与其他汉语教师交流 ChatGPT 辅助教学经验。',
+      '我希望建立适合本地汉语教学环境的 AI 教学资源库。',
+      '我希望了解如何判断和修改 ChatGPT 生成的教学内容。',
+      '我希望获得适用于汉语教学的 ChatGPT 使用案例。',
+      '我希望所在机构制定 ChatGPT 辅助教学的使用规范。'
+    ]
+  },
+  {
+    title: '七、总体评价与未来使用意愿',
+    questions: [
+      '总体而言，我认为 ChatGPT 对汉语教学具有积极意义。',
+      '总体而言，我认为 ChatGPT 可以提升汉语教师的工作效率。',
+      '总体而言，我认为 ChatGPT 可以改善学生的汉语学习体验。',
+      '今后我愿意持续关注 ChatGPT 在汉语教学中的应用。',
+      '今后我愿意在合适的教学环节中使用 ChatGPT。',
+      '如果有相关培训或资源支持，我会更愿意使用 ChatGPT 辅助汉语教学。',
+      '我认为在汉语国际教育领域有必要进一步研究 ChatGPT 的教学应用。'
+    ]
+  }
+];
+
+// ==== Render Likert Sections ====
+let qNum = 0;
+const likertContainer = document.getElementById('likertSections');
+
+likertSections.forEach((section, sIdx) => {
+  const div = document.createElement('div');
+  div.className = 'section';
+  div.innerHTML = `<div class="section-title"><span class="num">${sIdx + 2}</span>${section.title}</div>`;
+
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'likert-table';
+
+  let html = `<table><thead><tr><th></th>`;
+  for (let i = 1; i <= 5; i++) html += `<th>${i}</th>`;
+  html += `</tr></thead><tbody>`;
+
+  section.questions.forEach(q => {
+    qNum++;
+    html += `<tr><td>${q}</td>`;
+    for (let v = 1; v <= 5; v++) {
+      html += `<td><label class="likert-radio"><input type="radio" name="q${qNum}" value="${v}" required><span class="dot"></span></label></td>`;
+    }
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+
+  tableWrap.innerHTML = html;
+  div.appendChild(tableWrap);
+  likertContainer.appendChild(div);
+});
+
+// ==== Validation ====
+function validateRequired(name) {
+  const checked = document.querySelector(`input[name="${name}"]:checked`);
+  const errEl = document.getElementById(`err-${name}`);
+  if (!checked) {
+    if (errEl) { errEl.textContent = '请选择一项'; errEl.classList.add('show'); }
+    return false;
+  }
+  if (errEl) errEl.classList.remove('show');
+  return true;
+}
+
+function validateCheckboxGroup(name) {
+  const checked = document.querySelectorAll(`input[name="${name}"]:checked`);
+  const errEl = document.getElementById(`err-${name}`);
+  if (checked.length === 0) {
+    if (errEl) { errEl.textContent = '请至少选择一项'; errEl.classList.add('show'); }
+    return false;
+  }
+  if (errEl) errEl.classList.remove('show');
+  return true;
+}
+
+function validateNumber(id) {
+  const el = document.getElementById(id);
+  const errEl = document.getElementById(`err-${id}`);
+  if (!el.value || el.value.trim() === '') {
+    if (errEl) { errEl.textContent = '请填写此项'; errEl.classList.add('show'); }
+    return false;
+  }
+  if (errEl) errEl.classList.remove('show');
+  return true;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function scrollToEl(el) {
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ==== Collect data ====
+function collectData() {
+  const data = {
+    type: 'teacher',
+    timestamp: new Date().toISOString(),
+    age: document.getElementById('age').value,
+    teachYears: document.getElementById('teachYears').value,
+    targetStudents: Array.from(document.querySelectorAll('input[name="targetStudents"]:checked')).map(c => c.value),
+    studentLevel: Array.from(document.querySelectorAll('input[name="studentLevel"]:checked')).map(c => c.value),
+    latinExp: document.querySelector('input[name="latinExp"]:checked')?.value || '',
+    teachLang: Array.from(document.querySelectorAll('input[name="teachLang"]:checked')).map(c => c.value),
+    schoolType: document.querySelector('input[name="schoolType"]:checked')?.value || '',
+    useAI: document.querySelector('input[name="useAI"]:checked')?.value || '',
+    likert: {}
+  };
+
+  for (let i = 1; i <= qNum; i++) {
+    const r = document.querySelector(`input[name="q${i}"]:checked`);
+    data.likert[`q${i}`] = r ? parseInt(r.value) : null;
+  }
+
+  return data;
+}
+
+// ==== Submit ====
+function submitSurvey() {
+  // Validate basic info
+  const validations = [
+    { check: () => validateNumber('age'), el: document.getElementById('age') },
+    { check: () => validateNumber('teachYears'), el: document.getElementById('teachYears') },
+    { check: () => validateCheckboxGroup('targetStudents') },
+    { check: () => validateCheckboxGroup('studentLevel') },
+    { check: () => validateRequired('latinExp') },
+    { check: () => validateCheckboxGroup('teachLang') },
+    { check: () => validateRequired('schoolType') },
+    { check: () => validateRequired('useAI') }
+  ];
+
+  let firstError = null;
+  let allValid = true;
+  validations.forEach(v => {
+    if (!v.check()) {
+      allValid = false;
+      if (!firstError && v.el) firstError = v.el;
+    }
+  });
+
+  // Validate all Likert questions
+  for (let i = 1; i <= qNum; i++) {
+    if (!document.querySelector(`input[name="q${i}"]:checked`)) {
+      allValid = false;
+      if (!firstError) {
+        const qEl = document.querySelector(`input[name="q${i}"]`).closest('.section');
+        if (qEl) firstError = qEl;
+      }
+    }
+  }
+
+  if (!allValid) {
+    showToast('⚠️ 请填写所有必填项后再提交');
+    if (firstError) scrollToEl(firstError);
+    return;
+  }
+
+  // Collect and save
+  const data = collectData();
+  const responses = JSON.parse(localStorage.getItem('teacher_survey_responses') || '[]');
+  responses.push(data);
+  localStorage.setItem('teacher_survey_responses', JSON.stringify(responses));
+  window._lastSubmittedData = data;
+
+  // Show thank you
+  document.getElementById('thankYouOverlay').classList.add('show');
+}
+
+function copyDataToClipboard() {
+  const data = window._lastSubmittedData;
+  if (!data) { showToast('⚠️ 没有可复制的数据'); return; }
+  const json = JSON.stringify(data, null, 2);
+  navigator.clipboard.writeText(json).then(() => {
+    showToast('✅ 答卷数据已复制到剪贴板！请发送给问卷发起人');
+  }).catch(() => {
+    // Fallback: show in textarea
+    const ta = document.createElement('textarea');
+    ta.value = json;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ 答卷数据已复制！');
+  });
+}
+
+function closeThankYou() {
+  document.getElementById('thankYouOverlay').classList.remove('show');
+  document.getElementById('surveyForm').reset();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window._lastSubmittedData = null;
+}
+
+// ==== Progress tracking ====
+function updateProgress() {
+  const allRadios = document.querySelectorAll('input[type="radio"]');
+  const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+  const total = qNum + 3 + 2; // likert + required radios + checkboxes groups (approx)
+  let filled = 0;
+  // Count Likert
+  for (let i = 1; i <= qNum; i++) {
+    if (document.querySelector(`input[name="q${i}"]:checked`)) filled++;
+  }
+  // Count basic required radios
+  ['latinExp', 'schoolType', 'useAI'].forEach(n => {
+    if (document.querySelector(`input[name="${n}"]:checked`)) filled++;
+  });
+  // Age and teachYears
+  if (document.getElementById('age').value) filled++;
+  if (document.getElementById('teachYears').value) filled++;
+
+  const pct = Math.min(100, Math.round((filled / (qNum + 5)) * 100));
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+document.addEventListener('change', updateProgress);
+document.addEventListener('input', updateProgress);
+</script>
+
+</body>
+</html>
