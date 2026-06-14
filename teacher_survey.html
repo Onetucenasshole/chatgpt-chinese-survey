@@ -448,8 +448,6 @@ input[type="text"]:focus, input[type="number"]:focus {
       <div class="icon">🎉</div>
       <h2>提交成功！</h2>
       <p>非常感谢您抽出宝贵时间填写本问卷！<br>您的回答将为ChatGPT辅助汉语教学研究提供重要参考。</p>
-      <button class="btn-copy" onclick="copyDataToClipboard()" style="margin-top:20px;padding:10px 28px;background:#2e86c1;color:#fff;border:none;border-radius:24px;font-size:14px;cursor:pointer;">📋 复制我的答卷数据</button>
-      <p style="font-size:11px;color:#999;margin-top:8px;">请将复制的数据发送给问卷发起人</p>
       <button onclick="closeThankYou()" style="margin-top:16px;background:none;border:none;color:#888;cursor:pointer;font-size:13px;">关闭</button>
     </div>
   </div>
@@ -458,17 +456,11 @@ input[type="text"]:focus, input[type="number"]:focus {
   <div class="toast" id="toast"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
 // ==== 数据收集配置 ====
 const JSONBIN_KEY  = '$2a$10$kZoAs0pS9hzA5rvrM10mDuq7y1ASxJlZoISmJIkBBSbic9jyQMJVu';
 const JSONBIN_URL  = 'https://api.jsonbin.io/v3/b/6a2e534cda38895dfebd6be2';
 const JSONBIN_GET  = JSONBIN_URL + '/latest';
-
-emailjs.init('XQbocgW9TKpzObgD');
-const EMAIL_TO   = 'zyuqi287@gmail.com';
-const EMAIL_SID  = 'service_survey_gmail';
-const EMAIL_TID  = 'template_3g2rndi';
 
 // ==== Likert Question Data ====
 const likertSections = [
@@ -713,38 +705,7 @@ function submitSurvey() {
       });
     }).catch(() => {});
 
-  // Also send email via EmailJS
-  emailjs.send(EMAIL_SID, EMAIL_TID, {
-    survey_type: '教师问卷',
-    submit_time: new Date(data.timestamp).toLocaleString('zh-CN'),
-    summary: `年龄:${data.age} | 教龄:${data.teachYears} | 学校:${data.schoolType} | AI使用:${data.useAI}`,
-    raw_data: JSON.stringify(data, null, 2)
-  }).then(() => {
-    console.log('Email sent successfully');
-  }).catch(err => {
-    console.error('EmailJS error:', err);
-    showToast('⚠️ 邮件发送失败: ' + (err.text || err.message || '未知错误'));
-  });
-
   document.getElementById('thankYouOverlay').classList.add('show');
-}
-
-function copyDataToClipboard() {
-  const data = window._lastSubmittedData;
-  if (!data) { showToast('⚠️ 没有可复制的数据'); return; }
-  const json = JSON.stringify(data, null, 2);
-  navigator.clipboard.writeText(json).then(() => {
-    showToast('✅ 答卷数据已复制到剪贴板！请发送给问卷发起人');
-  }).catch(() => {
-    // Fallback: show in textarea
-    const ta = document.createElement('textarea');
-    ta.value = json;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast('✅ 答卷数据已复制！');
-  });
 }
 
 function closeThankYou() {

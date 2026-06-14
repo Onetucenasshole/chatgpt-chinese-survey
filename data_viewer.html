@@ -107,6 +107,7 @@ table.data-table {
   .toolbar { flex-direction: column; align-items: stretch; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -162,6 +163,24 @@ table.data-table {
   <div class="card" id="summaryCard">
     <h3>📈 量表统计（平均值）</h3>
     <div id="summaryContent"></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="card" id="chartCard">
+    <h3>📊 统计图表</h3>
+    <div class="toolbar" style="margin-bottom:16px;">
+      <select id="chartType" onchange="renderChart()" style="padding:8px 12px;border:2px solid #e0e4e8;border-radius:10px;font-size:14px;">
+        <option value="bar">柱状图 (均值)</option>
+        <option value="horizontalBar">横向柱状图</option>
+        <option value="radar">雷达图</option>
+        <option value="line">折线图</option>
+        <option value="polarArea">极地区域图</option>
+      </select>
+      <span style="font-size:12px;color:#888;margin-left:8px;">所有量表题目的均值对比</span>
+    </div>
+    <div style="max-height:600px;overflow-y:auto;">
+      <canvas id="likertChart" height="80"></canvas>
+    </div>
   </div>
 </div>
 
@@ -293,6 +312,7 @@ function renderAll() {
     renderStats(responses);
     renderTable(responses);
     renderSummary(responses);
+    renderChart();
   });
 }
 
@@ -406,6 +426,84 @@ function renderSummary(responses) {
   container.innerHTML = html;
 }
 
+let chartInstance = null;
+
+function renderChart() {
+  const responses = getResponses();
+  const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  const canvas = document.getElementById('likertChart');
+  const ctx = canvas.getContext('2d');
+  const type = document.getElementById('chartType').value;
+
+  if (chartInstance) chartInstance.destroy();
+
+  if (responses.length === 0) {
+    canvas.parentElement.innerHTML = '<p style="color:#999;text-align:center;padding:40px;">暂无数据可绘制图表</p><canvas id="likertChart" height="80"></canvas>';
+    return;
+  }
+
+  const likertData = {};
+  responses.forEach(r => {
+    Object.entries(r.likert || {}).forEach(([k, v]) => {
+      if (v !== null) {
+        if (!likertData[k]) likertData[k] = { sum: 0, count: 0 };
+        likertData[k].sum += v;
+        likertData[k].count++;
+      }
+    });
+  });
+
+  const keys = Object.keys(likertData).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+  const labels = keys.map(k => {
+    const idx = parseInt(k.slice(1)) - 1;
+    return questions[idx] ? questions[idx].slice(0, 12) + '...' : 'Q' + k.slice(1);
+  });
+  const values = keys.map(k => {
+    const d = likertData[k];
+    return +(d.sum / d.count).toFixed(2);
+  });
+
+  const colors = values.map((v, i) => {
+    const hue = (i * 360 / values.length) % 360;
+    return `hsl(${hue}, 60%, 55%)`;
+  });
+
+  const config = {
+    type: type === 'horizontalBar' ? 'bar' : type,
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '均值 (1-5)',
+        data: values,
+        backgroundColor: type === 'radar' ? 'rgba(46,134,193,0.2)' : colors,
+        borderColor: type === 'radar' ? '#2e86c1' : colors.map(c => c.replace('55%)','45%)')),
+        borderWidth: 1,
+        pointBackgroundColor: '#2e86c1'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: type === 'horizontalBar' ? 'y' : 'x',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '均值: ' + ctx.raw
+          }
+        }
+      },
+      scales: type === 'radar' || type === 'polarArea' ? {} : {
+        y: { min: 0, max: 5, ticks: { stepSize: 1 } },
+        x: type === 'horizontalBar' ? { min: 0, max: 5, ticks: { stepSize: 1 } } : {}
+      }
+    }
+  };
+
+  canvas.height = Math.max(400, keys.length * 25);
+  chartInstance = new Chart(ctx, config);
+}
+
 // ==== Export CSV ====
 function exportCSV() {
   const responses = getResponses();
@@ -499,11 +597,10 @@ function clearData() {
   if (confirm(`确定要清空所有${currentTab === 'teacher' ? '教师' : '学生'}问卷数据（共 ${responses.length} 条记录）吗？\n\n⚠️ 此操作不可恢复！建议先导出 CSV 备份。`)) {
     localStorage.setItem(getStorageKey(), '[]');
     cloudData[currentTab] = [];
-    // Clear cloud bin too
     fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BI[currentTab]}`, {
       method: 'PUT',
       headers: { 'X-Master-Key': JSONBIN_KEY, 'Content-Type': 'application/json' },
-      body: '[]'
+      body: '[{}]'
     }).catch(() => {});
     renderAll();
     showToast('🗑️ 数据已清空');
