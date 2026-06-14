@@ -389,7 +389,7 @@ function renderStats(responses) {
 
   // Count completed Likert
   const avgCompletion = Math.round(responses.reduce((sum, r) => {
-    const vals = Object.values(r.likert || {}).filter(v => v !== null);
+    const vals = Object.values(r.likert || {}).filter(v => v != null);
     const total = Object.keys(r.likert || {}).length || 1;
     return sum + (vals.length / total);
   }, 0) / responses.length * 100);
@@ -504,7 +504,7 @@ function renderChart() {
   const likertData = {};
   responses.forEach(r => {
     Object.entries(r.likert || {}).forEach(([k, v]) => {
-      if (v === null) return;
+      if (v == null) return;
       const qNum = parseInt(k.slice(1));
       if (qNum < range[0] || qNum > range[1]) return;
       if (!likertData[k]) likertData[k] = { sum: 0, count: 0, vals: [] };
@@ -676,7 +676,7 @@ function exportSPSSReport() {
     const modVals = [];
     for (let qi = mod.qStart; qi <= mod.qEnd; qi++) {
       const k = 'q' + qi;
-      const vals = responses.map(r => r.likert && r.likert[k]).filter(v => v !== null);
+      const vals = responses.map(r => r.likert && r.likert[k]).filter(v => v != null);
       if (vals.length === 0) continue;
       vals.sort((a,b) => a-b);
       const n = vals.length;
