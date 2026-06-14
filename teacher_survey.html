@@ -459,6 +459,9 @@ input[type="text"]:focus, input[type="number"]:focus {
 </div>
 
 <script>
+// ==== CONFIG: 替换为你的 Google Apps Script Web App URL ====
+const GOOGLE_SCRIPT_URL = 'YOUR_SCRIPT_URL_HERE';
+
 // ==== Likert Question Data ====
 const likertSections = [
   {
@@ -684,12 +687,24 @@ function submitSurvey() {
     return;
   }
 
-  // Collect and save
+  // Collect and send
   const data = collectData();
+
+  // Always save locally
   const responses = JSON.parse(localStorage.getItem('teacher_survey_responses') || '[]');
   responses.push(data);
   localStorage.setItem('teacher_survey_responses', JSON.stringify(responses));
   window._lastSubmittedData = data;
+
+  // Send to Google Sheets (if configured)
+  if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'YOUR_SCRIPT_URL_HERE') {
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'text/plain' }
+    }).catch(() => {});
+  }
 
   // Show thank you
   document.getElementById('thankYouOverlay').classList.add('show');
