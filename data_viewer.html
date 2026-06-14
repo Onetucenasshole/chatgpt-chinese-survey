@@ -340,9 +340,8 @@ let cloudData = { teacher: [], student: [] };
 function getStorageKey() { return currentTab === 'teacher' ? 'teacher_survey_responses' : 'student_survey_responses'; }
 
 function getResponses() {
-  const remote = cloudData[currentTab] || [];
-  const local = JSON.parse(localStorage.getItem(getStorageKey()) || '[]');
-  // Merge: remote first, deduplicate by timestamp
+  const remote = (cloudData[currentTab] || []).filter(r => r && !r._empty);
+  const local = JSON.parse(localStorage.getItem(getStorageKey()) || '[]').filter(r => r && !r._empty);
   const seen = new Set();
   const merged = [...remote, ...local].filter(r => {
     const key = r.timestamp + (r.age || '') + (r.gender || r.teachYears || '');
@@ -803,7 +802,7 @@ function clearData() {
     fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BI[currentTab]}`, {
       method: 'PUT',
       headers: { 'X-Master-Key': JSONBIN_KEY, 'Content-Type': 'application/json' },
-      body: '[{}]'
+      body: '[{"_empty":true}]'
     }).catch(() => {});
     renderAll();
     showToast('🗑️ 数据已清空');
