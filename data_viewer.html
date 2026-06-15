@@ -37,6 +37,15 @@ body {
 .btn-outline:hover { border-color: #999; }
 .btn-danger { background: #e74c3c; color: #fff; }
 .btn-danger:hover { background: #c0392b; }
+.btn-danger:disabled { background: #f5b7b1; cursor: not-allowed; }
+
+.data-table th.cb-col, .data-table td.cb-col {
+  width: 40px; text-align: center; padding: 8px 4px;
+}
+.data-table th.cb-col input[type="checkbox"],
+.data-table td.cb-col input[type="checkbox"] {
+  cursor: pointer; width: 16px; height: 16px; accent-color: #2e86c1;
+}
 
 .tabs {
   display: flex; gap: 4px; background: #e0e4e8; padding: 4px; border-radius: 12px;
@@ -159,7 +168,8 @@ table.data-table {
     <button class="btn btn-green" onclick="exportCSV()">📥 导出 CSV</button>
     <button class="btn btn-purple" onclick="importData()">📤 导入数据 (JSON)</button>
     <button class="btn btn-outline" onclick="copyShareLink()">🔗 复制问卷链接</button>
-    <button class="btn btn-danger" onclick="clearData()" style="margin-left:auto;">🗑️ 清空数据</button>
+    <button class="btn btn-danger" id="btnDeleteSelected" onclick="deleteSelected()" disabled style="margin-left:auto;">🗑️ 删除选中 (<span id="deleteCount">0</span>)</button>
+    <button class="btn btn-danger" onclick="clearData()" style="margin-left:16px;">🗑️ 清空数据</button>
   </div>
 
   <!-- Data Table -->
@@ -424,11 +434,13 @@ function renderTable(responses) {
   if (responses.length === 0) {
     container.innerHTML = '';
     empty.classList.remove('hidden');
+    updateDeleteButton();
     return;
   }
   empty.classList.add('hidden');
 
   let html = '<table class="data-table"><thead><tr>';
+  html += '<th class="cb-col"><input type="checkbox" id="selectAll" onchange="onSelectAll(event)" title="全选/取消全选"></th>';
   html += '<th>#</th><th>时间</th>';
 
   if (currentTab === 'teacher') {
@@ -447,7 +459,8 @@ function renderTable(responses) {
   html += '</tr></thead><tbody>';
 
   responses.forEach((r, idx) => {
-    html += `<tr><td>${idx + 1}</td>`;
+    const key = getRecordKey(r);
+    html += `<tr><td class="cb-col"><input type="checkbox" class="row-checkbox" data-key="${key}" onchange="onRowCheckboxChange()"></td><td>${idx + 1}</td>`;
     html += `<td>${new Date(r.timestamp).toLocaleString('zh-CN')}</td>`;
     if (currentTab === 'teacher') {
       html += `<td>${r.age || ''}</td><td>${r.teachYears || ''}</td>`;
@@ -471,6 +484,7 @@ function renderTable(responses) {
 
   html += '</tbody></table>';
   container.innerHTML = html;
+  updateDeleteButton();
 }
 
 function renderSummary(responses) {
@@ -891,6 +905,73 @@ function copyShareLink() {
   };
   const url = window.location.href.replace('data_viewer.html', links[currentTab]);
   navigator.clipboard.writeText(url).then(() => showToast('📋 链接已复制'));
+}
+
+// ==== Record key (same logic as dedup) ====
+function getRecordKey(r) {
+  return r.timestamp + (r.age || '') + (r.gender || r.teachYears || '');
+}
+
+// ==== Select / Delete individual records ====
+function onSelectAll(e) {
+  const checked = e.target.checked;
+  document.querySelectorAll('#dataTable .row-checkbox').forEach(cb => {
+    cb.checked = checked;
+  });
+  updateDeleteButton();
+}
+
+function onRowCheckboxChange() {
+  updateDeleteButton();
+  // Sync selectAll checkbox state
+  const all = document.querySelectorAll('#dataTable .row-checkbox');
+  const checked = document.querySelectorAll('#dataTable .row-checkbox:checked');
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll) {
+    selectAll.checked = all.length > 0 && checked.length === all.length;
+    selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+  }
+}
+
+function updateDeleteButton() {
+  const checked = document.querySelectorAll('#dataTable .row-checkbox:checked');
+  const btn = document.getElementById('btnDeleteSelected');
+  const count = document.getElementById('deleteCount');
+  if (btn) {
+    btn.disabled = checked.length === 0;
+  }
+  if (count) {
+    count.textContent = checked.length;
+  }
+}
+
+function deleteSelected() {
+  const checkboxes = document.querySelectorAll('#dataTable .row-checkbox:checked');
+  if (checkboxes.length === 0) { showToast('请先选择要删除的记录'); return; }
+
+  if (!confirm(`确定要删除选中的 ${checkboxes.length} 条记录吗？\n\n⚠️ 此操作不可恢复！建议先导出 CSV 备份。`)) return;
+
+  const keysToDelete = new Set();
+  checkboxes.forEach(cb => keysToDelete.add(cb.dataset.key));
+
+  // Remove from localStorage
+  const localData = JSON.parse(localStorage.getItem(getStorageKey()) || '[]');
+  const newLocal = localData.filter(r => !keysToDelete.has(getRecordKey(r)));
+  localStorage.setItem(getStorageKey(), JSON.stringify(newLocal));
+
+  // Remove from cloudData cache
+  cloudData[currentTab] = (cloudData[currentTab] || []).filter(r => !keysToDelete.has(getRecordKey(r)));
+
+  // PUT updated data to JSONBin
+  const payload = cloudData[currentTab].length > 0 ? cloudData[currentTab] : [{_empty: true}];
+  fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BI[currentTab]}`, {
+    method: 'PUT',
+    headers: { 'X-Master-Key': JSONBIN_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+
+  renderAll();
+  showToast(`🗑️ 已删除 ${checkboxes.length} 条记录`);
 }
 
 // ==== Clear data ====
