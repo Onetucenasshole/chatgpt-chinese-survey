@@ -199,7 +199,10 @@ input[type="text"]:focus, input[type="number"]:focus { border-color: #8e44ad; ou
 
       <div class="form-group">
         <label>Género</label>
-        <input type="text" id="gender" placeholder="Ingresa tu género" maxlength="20" required>
+        <div class="options-grid" id="gender">
+          <div class="option-item"><input type="radio" id="g1" name="gender" value="Masculino"><label class="opt-label" for="g1">Masculino</label></div>
+          <div class="option-item"><input type="radio" id="g2" name="gender" value="Femenino"><label class="opt-label" for="g2">Femenino</label></div>
+        </div>
         <span class="error-msg" id="err-gender"></span>
       </div>
 
@@ -511,7 +514,7 @@ function collectData() {
     type: 'student',
     timestamp: new Date().toISOString(),
     age: document.getElementById('age').value,
-    gender: document.getElementById('gender').value,
+    gender: document.querySelector('input[name="gender"]:checked')?.value || '',
     studyDuration: document.querySelector('input[name="studyDuration"]:checked')?.value || '',
     hskLevel: document.querySelector('input[name="hskLevel"]:checked')?.value || '',
     studyPurpose: Array.from(document.querySelectorAll('input[name="studyPurpose"]:checked')).map(c => c.value),
@@ -534,7 +537,7 @@ function collectData() {
 function submitSurvey() {
   const validations = [
     { check: () => validateText('age') },
-    { check: () => validateText('gender') },
+    { check: () => validateRequired('gender') },
     { check: () => validateRequired('studyDuration') },
     { check: () => validateRequired('hskLevel') },
     { check: () => validateCheckboxGroup('studyPurpose') },
@@ -602,7 +605,7 @@ function updateProgress() {
     if (document.querySelector(`input[name="${n}"]:checked`)) filled++;
   });
   if (document.getElementById('age').value) filled++;
-  if (document.getElementById('gender').value) filled++;
+  if (document.querySelector('input[name="gender"]:checked')) filled++;
 
   const pct = Math.min(100, Math.round((filled / (qNum + 5)) * 100));
   document.getElementById('progressBar').style.width = pct + '%';

@@ -343,6 +343,15 @@ input[type="text"]:focus, input[type="number"]:focus {
       </div>
 
       <div class="form-group">
+        <label>性别</label>
+        <div class="options-grid" id="gender">
+          <div class="option-item"><input type="radio" id="g1" name="gender" value="男"><label class="opt-label" for="g1">男</label></div>
+          <div class="option-item"><input type="radio" id="g2" name="gender" value="女"><label class="opt-label" for="g2">女</label></div>
+        </div>
+        <span class="error-msg" id="err-gender"></span>
+      </div>
+
+      <div class="form-group">
         <label>教龄（年）</label>
         <input type="number" id="teachYears" min="0" max="60" step="0.5" placeholder="请输入教龄" required>
         <span class="error-msg" id="err-teachYears"></span>
@@ -629,6 +638,7 @@ function collectData() {
     type: 'teacher',
     timestamp: new Date().toISOString(),
     age: document.getElementById('age').value,
+    gender: document.querySelector('input[name="gender"]:checked')?.value || '',
     teachYears: document.getElementById('teachYears').value,
     targetStudents: Array.from(document.querySelectorAll('input[name="targetStudents"]:checked')).map(c => c.value),
     studentLevel: Array.from(document.querySelectorAll('input[name="studentLevel"]:checked')).map(c => c.value),
@@ -652,6 +662,7 @@ function submitSurvey() {
   // Validate basic info
   const validations = [
     { check: () => validateNumber('age'), el: document.getElementById('age') },
+    { check: () => validateRequired('gender') },
     { check: () => validateNumber('teachYears'), el: document.getElementById('teachYears') },
     { check: () => validateCheckboxGroup('targetStudents') },
     { check: () => validateCheckboxGroup('studentLevel') },
@@ -729,11 +740,12 @@ function updateProgress() {
   ['latinExp', 'schoolType', 'useAI'].forEach(n => {
     if (document.querySelector(`input[name="${n}"]:checked`)) filled++;
   });
-  // Age and teachYears
+  // Basic info
   if (document.getElementById('age').value) filled++;
+  if (document.querySelector('input[name="gender"]:checked')) filled++;
   if (document.getElementById('teachYears').value) filled++;
 
-  const pct = Math.min(100, Math.round((filled / (qNum + 5)) * 100));
+  const pct = Math.min(100, Math.round((filled / (qNum + 6)) * 100));
   document.getElementById('progressBar').style.width = pct + '%';
 }
 

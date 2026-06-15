@@ -444,7 +444,7 @@ function renderTable(responses) {
   html += '<th>#</th><th>时间</th>';
 
   if (currentTab === 'teacher') {
-    html += '<th>年龄</th><th>教龄</th><th>教学对象</th><th>学生水平</th><th>拉美经验</th><th>授课语言</th><th>学校类型</th><th>使用AI</th>';
+    html += '<th>年龄</th><th>教龄</th><th>性别</th><th>教学对象</th><th>学生水平</th><th>拉美经验</th><th>授课语言</th><th>学校类型</th><th>使用AI</th>';
   } else {
     html += '<th>年龄</th><th>性别</th><th>学习时长</th><th>汉语水平</th><th>学习目的</th><th>工具频率</th><th>使用工具</th>';
   }
@@ -463,7 +463,7 @@ function renderTable(responses) {
     html += `<tr><td class="cb-col"><input type="checkbox" class="row-checkbox" data-key="${key}" onchange="onRowCheckboxChange()"></td><td>${idx + 1}</td>`;
     html += `<td>${new Date(r.timestamp).toLocaleString('zh-CN')}</td>`;
     if (currentTab === 'teacher') {
-      html += `<td>${r.age || ''}</td><td>${r.teachYears || ''}</td>`;
+      html += `<td>${r.age || ''}</td><td>${r.teachYears || ''}</td><td>${r.gender || ''}</td>`;
       html += `<td>${(r.targetStudents || []).join(', ')}</td>`;
       html += `<td>${(r.studentLevel || []).join(', ')}</td>`;
       html += `<td>${r.latinExp || ''}</td><td>${(r.teachLang || []).join(', ')}</td>`;
@@ -731,6 +731,7 @@ function renderFrequency(responses) {
       if (y <= 10) return '5-10年';
       return '10年以上';
     });
+    html += freqTable('性别', null, r => r.gender || '(未填)');
     html += freqTable('教学对象（多选）', null, r => r.targetStudents || []);
     html += freqTable('学生汉语水平（多选）', null, r => r.studentLevel || []);
     html += freqTable('墨西哥/拉美任教经验', null, r => r.latinExp || '(未填)');
@@ -832,7 +833,7 @@ function exportCSV() {
   // Headers
   let headers = ['序号', '提交时间'];
   if (currentTab === 'teacher') {
-    headers.push('年龄', '教龄', '教学对象', '学生汉语水平', '拉美任教经验', '授课语言', '学校类型', '是否使用AI');
+    headers.push('年龄', '性别', '教龄', '教学对象', '学生汉语水平', '拉美任教经验', '授课语言', '学校类型', '是否使用AI');
   } else {
     headers.push('年龄', '性别', '学习汉语时间', '汉语水平', '学习目的', '学习目的(其他)', '数字工具频率', '使用工具', '使用工具(其他)');
   }
@@ -842,7 +843,7 @@ function exportCSV() {
   responses.forEach((r, idx) => {
     let row = [idx + 1, r.timestamp];
     if (currentTab === 'teacher') {
-      row.push(r.age, r.teachYears, (r.targetStudents || []).join(';'), (r.studentLevel || []).join(';'),
+      row.push(r.age, r.gender || '', r.teachYears, (r.targetStudents || []).join(';'), (r.studentLevel || []).join(';'),
                r.latinExp, (r.teachLang || []).join(';'), r.schoolType, r.useAI);
     } else {
       row.push(r.age, r.gender, r.studyDuration, r.hskLevel, (r.studyPurpose || []).join(';'),
