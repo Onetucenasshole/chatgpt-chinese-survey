@@ -112,6 +112,28 @@ table.data-table {
 .freq-table th { background:#f0f4f8; padding:8px 12px; text-align:left; font-weight:600; color:#555; border-bottom:2px solid #e0e4e8; }
 .freq-table td { padding:7px 12px; border-bottom:1px solid #f0f2f5; }
 .freq-table .cat-header td { background:#e8f0f8; font-weight:700; color:#1a5276; padding:10px 12px; }
+
+/* Three-line table style */
+.three-line-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  border-top: 2px solid #333; border-bottom: 2px solid #333;
+}
+.three-line-table thead th {
+  border-bottom: 1px solid #333; padding: 8px 10px;
+  text-align: center; font-weight: 600; color: #333;
+  background: none;
+}
+.three-line-table tbody td {
+  padding: 6px 10px; text-align: center; border: none;
+  color: #444;
+}
+.three-line-table tbody td.cat {
+  text-align: left; font-weight: 600; color: #1a5276;
+  vertical-align: top;
+}
+.three-line-table .note-row td {
+  font-size: 12px; color: #999; padding-top: 10px; text-align: left;
+}
 .freq-table .bar-cell { width:40%; }
 .freq-table .bar-inner { height:20px; background:linear-gradient(90deg,#2e86c1,#74b9ff); border-radius:10px; transition:width .3s; min-width:4px; }
 
@@ -218,6 +240,7 @@ table.data-table {
   <div class="card" id="freqCard">
     <h3>📋 基础信息频数分析</h3>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn btn-green" onclick="exportFreqDOCX()" style="font-size:12px;padding:6px 14px;">📝 导出 Word</button>
       <button class="btn btn-green" onclick="exportFreqExcel()" style="font-size:12px;padding:6px 14px;">📥 导出 Excel</button>
       <button class="btn btn-outline" onclick="exportFreqTXT()" style="font-size:12px;padding:6px 14px;">📄 导出 TXT</button>
     </div>
@@ -680,7 +703,7 @@ function calcAlpha(moduleVals, totalN) {
   return (k/(k-1)) * (1 - varItems/varTotal);
 }
 
-// ==== 基础信息频数分析 ====
+// ==== 基础信息频数分析（三线表） ====
 function renderFrequency(responses) {
   const container = document.getElementById('freqContent');
   if (responses.length === 0) {
@@ -691,37 +714,34 @@ function renderFrequency(responses) {
   const n = responses.length;
   freqExportData = [];
 
-  function freqTable(title, getter) {
-    const tableData = { title, rows: [], totalCount: 0 };
+  function freqGroup(title, getter, isMulti) {
     const counts = {};
+    let totalCount = 0;
     responses.forEach(r => {
       const vals = getter(r);
-      if (Array.isArray(vals)) {
-        vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
-        tableData.totalCount += vals.length;
+      if (isMulti) {
+        (vals || []).forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+        totalCount += (vals || []).length;
       } else {
         const v = vals || '(未填)';
         counts[v] = (counts[v] || 0) + 1;
-        tableData.totalCount++;
+        totalCount++;
       }
     });
     const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
-    let html = `<table class="freq-table"><tr class="cat-header"><td colspan="3">${title}</td></tr>`;
-    html += `<tr><th>选项</th><th>频数</th><th class="bar-cell">百分比</th></tr>`;
-    sorted.forEach(([label, cnt]) => {
-      const pct = tableData.totalCount > 0 ? (cnt / tableData.totalCount * 100).toFixed(1) : 0;
-      html += `<tr><td>${label}</td><td>${cnt}</td><td><div class="bar-inner" style="width:${Math.max(2,pct)}%"></div>&nbsp;${pct}%</td></tr>`;
-      tableData.rows.push({ option: label, count: cnt, pct });
-    });
-    html += '</table>';
-    freqExportData.push(tableData);
-    return html;
+    const rows = sorted.map(([label, cnt]) => ({
+      option: label,
+      count: cnt,
+      pct: totalCount > 0 ? (cnt / totalCount * 100).toFixed(1) : '0.0'
+    }));
+    freqExportData.push({ title, rows, totalCount });
+    return rows;
   }
 
-  let html = '';
+  const groups = [];
 
   if (currentTab === 'teacher') {
-    html += freqTable('年龄', r => {
+    groups.push({ title: '年龄', rows: freqGroup('年龄', r => {
       const age = parseInt(r.age) || 0;
       if (age <= 25) return '25岁及以下';
       if (age <= 30) return '26-30岁';
@@ -729,61 +749,102 @@ function renderFrequency(responses) {
       if (age <= 40) return '36-40岁';
       if (age <= 50) return '41-50岁';
       return '50岁以上';
-    });
-    html += freqTable('教龄', r => {
+    }) });
+    groups.push({ title: '教龄', rows: freqGroup('教龄', r => {
       const y = parseFloat(r.teachYears) || 0;
       if (y <= 1) return '1年及以下';
       if (y <= 3) return '1-3年';
       if (y <= 5) return '3-5年';
       if (y <= 10) return '5-10年';
       return '10年以上';
-    });
-    html += freqTable('性别', r => r.gender || '(未填)');
-    html += freqTable('教学对象（多选）', r => r.targetStudents || []);
-    html += freqTable('学生汉语水平（多选）', r => r.studentLevel || []);
-    html += freqTable('墨西哥/拉美任教经验', r => r.latinExp || '(未填)');
-    html += freqTable('授课语言（多选）', r => r.teachLang || []);
-    html += freqTable('学校类型', r => r.schoolType || '(未填)');
-    html += freqTable('是否使用AI辅助教学', r => r.useAI || '(未填)');
+    }) });
+    groups.push({ title: '性别', rows: freqGroup('性别', r => r.gender || '(未填)') });
+    groups.push({ title: '教学对象（多选）', rows: freqGroup('教学对象（多选）', r => r.targetStudents || [], true) });
+    groups.push({ title: '学生汉语水平（多选）', rows: freqGroup('学生汉语水平（多选）', r => r.studentLevel || [], true) });
+    groups.push({ title: '墨西哥/拉美任教经验', rows: freqGroup('墨西哥/拉美任教经验', r => r.latinExp || '(未填)') });
+    groups.push({ title: '授课语言（多选）', rows: freqGroup('授课语言（多选）', r => r.teachLang || [], true) });
+    groups.push({ title: '学校类型', rows: freqGroup('学校类型', r => r.schoolType || '(未填)') });
+    groups.push({ title: '是否使用AI辅助教学', rows: freqGroup('是否使用AI辅助教学', r => r.useAI || '(未填)') });
   } else {
-    html += freqTable('Edad', r => {
+    groups.push({ title: 'Edad', rows: freqGroup('Edad', r => {
       const age = parseInt(r.age) || 0;
       if (age <= 14) return '14 años o menos';
       if (age <= 18) return '15-18 años';
       if (age <= 25) return '19-25 años';
       if (age <= 35) return '26-35 años';
       return '36 años o más';
-    });
-    html += freqTable('Género', r => r.gender || '(Sin dato)');
-    html += freqTable('Tiempo estudiando chino', r => r.studyDuration || '(Sin dato)');
-    html += freqTable('Nivel de chino', r => r.hskLevel || '(Sin dato)');
-    html += freqTable('Objetivo de estudio（多选）', r => r.studyPurpose || []);
-    html += freqTable('Frecuencia de uso de herramientas digitales', r => r.toolFreq || '(Sin dato)');
-    html += freqTable('Herramientas utilizadas（多选）', r => r.toolsUsed || []);
+    }) });
+    groups.push({ title: 'Género', rows: freqGroup('Género', r => r.gender || '(Sin dato)') });
+    groups.push({ title: 'Tiempo estudiando chino', rows: freqGroup('Tiempo estudiando chino', r => r.studyDuration || '(Sin dato)') });
+    groups.push({ title: 'Nivel de chino', rows: freqGroup('Nivel de chino', r => r.hskLevel || '(Sin dato)') });
+    groups.push({ title: 'Objetivo de estudio（多选）', rows: freqGroup('Objetivo de estudio（多选）', r => r.studyPurpose || [], true) });
+    groups.push({ title: 'Frecuencia de uso de herramientas digitales', rows: freqGroup('Frecuencia de uso de herramientas digitales', r => r.toolFreq || '(Sin dato)') });
+    groups.push({ title: 'Herramientas utilizadas（多选）', rows: freqGroup('Herramientas utilizadas（多选）', r => r.toolsUsed || [], true) });
   }
 
-  html += `<p style="font-size:12px;color:#999;margin-top:12px;">总样本量 N = ${n}</p>`;
+  // Render three-line table
+  let html = '<table class="three-line-table"><thead><tr>';
+  html += '<th style="width:25%;">基本信息</th><th style="width:35%;">类目</th><th style="width:15%;">人数</th><th style="width:25%;">占比 (%)</th>';
+  html += '</tr></thead><tbody>';
+
+  groups.forEach(group => {
+    group.rows.forEach((row, i) => {
+      html += '<tr>';
+      if (i === 0) {
+        html += `<td class="cat" rowspan="${group.rows.length}">${group.title}</td>`;
+      }
+      html += `<td>${row.option}</td><td>${row.count}</td><td>${row.pct}</td>`;
+      html += '</tr>';
+    });
+  });
+
+  html += `<tr class="note-row"><td colspan="4">注：N = ${n}</td></tr>`;
+  html += '</tbody></table>';
+
   container.innerHTML = html;
 }
 
 // ==== Export frequency analysis ====
+function buildFreqTableHTML(title, groups) {
+  const typeName = currentTab === 'teacher' ? '教师' : '学生';
+  let html = `<p style="font-size:14px;font-weight:bold;margin-bottom:8px;">表1  ${typeName}问卷受访者基本信息频数分布（N = ${getResponses().length}）</p>`;
+  html += '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;font-family:SimSun,serif;">';
+  html += '<tr style="background:#f0f0f0;"><th>基本信息</th><th>类目</th><th>人数</th><th>占比 (%)</th></tr>';
+  groups.forEach(g => {
+    g.rows.forEach((row, i) => {
+      const catStyle = 'style="vertical-align:top;text-align:left;"';
+      html += '<tr>';
+      if (i === 0) html += `<td ${catStyle} rowspan="${g.rows.length}">${g.title}</td>`;
+      html += `<td>${row.option}</td><td style="text-align:center;">${row.count}</td><td style="text-align:center;">${row.pct}</td>`;
+      html += '</tr>';
+    });
+  });
+  html += '</table>';
+  return html;
+}
+
+function exportFreqDOCX() {
+  if (freqExportData.length === 0) { showToast('⚠️ 没有数据可导出'); return; }
+  const typeName = currentTab === 'teacher' ? '教师' : '学生';
+  const tableHTML = buildFreqTableHTML(typeName, freqExportData);
+  const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"><style>@page { size: A4; margin: 2cm; } body { font-family: SimSun, serif; }</style></head>
+<body>${tableHTML}</body></html>`;
+  const blob = new Blob(['\uFEFF' + doc], { type: 'application/msword;charset=utf-8' });
+  downloadBlob(blob, `频数分析_${typeName}_${new Date().toISOString().slice(0,10)}.doc`);
+  showToast('✅ 频数分析 Word 已下载');
+}
+
 function exportFreqExcel() {
   if (freqExportData.length === 0) { showToast('⚠️ 没有数据可导出'); return; }
   const typeName = currentTab === 'teacher' ? '教师' : '学生';
-  let csv = '\uFEFF'; // BOM for Excel
-
-  csv += `基础信息频数分析 — ${typeName}问卷\n`;
-  csv += `导出时间: ${new Date().toLocaleString('zh-CN')}\n\n`;
-
-  freqExportData.forEach(table => {
-    csv += `${table.title}\n`;
-    csv += '选项,频数,百分比(%)\n';
-    table.rows.forEach(row => {
-      csv += `"${row.option}",${row.count},${row.pct}\n`;
+  let csv = '\uFEFF';
+  csv += `基本信息,类目,人数,占比(%)\n`;
+  freqExportData.forEach(g => {
+    g.rows.forEach(row => {
+      csv += `"${g.title}","${row.option}",${row.count},${row.pct}\n`;
     });
-    csv += '\n';
   });
-
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `频数分析_${typeName}_${new Date().toISOString().slice(0,10)}.csv`);
   showToast('✅ 频数分析 Excel 已下载');
@@ -794,23 +855,16 @@ function exportFreqTXT() {
   const typeName = currentTab === 'teacher' ? '教师' : '学生';
   const line = '-'.repeat(50);
   let txt = '';
-
-  txt += `基础信息频数分析报告\n`;
-  txt += `${'='.repeat(50)}\n`;
-  txt += `问卷类型: ${typeName}问卷\n`;
-  txt += `导出时间: ${new Date().toLocaleString('zh-CN')}\n`;
-  txt += `${'='.repeat(50)}\n\n`;
-
-  freqExportData.forEach(table => {
-    txt += `【${table.title}】\n${line}\n`;
-    txt += '选项'.padEnd(20) + '频数'.padStart(8) + '百分比'.padStart(12) + '\n';
-    txt += line + '\n';
-    table.rows.forEach(row => {
+  txt += `基础信息频数分析报告\n${'='.repeat(50)}\n`;
+  txt += `问卷类型: ${typeName}问卷\n导出时间: ${new Date().toLocaleString('zh-CN')}\n${'='.repeat(50)}\n\n`;
+  freqExportData.forEach(g => {
+    txt += `【${g.title}】\n${line}\n`;
+    txt += '选项'.padEnd(20) + '人数'.padStart(8) + '占比'.padStart(12) + '\n' + line + '\n';
+    g.rows.forEach(row => {
       txt += row.option.slice(0, 20).padEnd(20) + String(row.count).padStart(8) + (row.pct + '%').padStart(12) + '\n';
     });
     txt += '\n';
   });
-
   const blob = new Blob(['\uFEFF' + txt], { type: 'text/plain;charset=utf-8' });
   downloadBlob(blob, `频数分析_${typeName}_${new Date().toISOString().slice(0,10)}.txt`);
   showToast('✅ 频数分析 TXT 已下载');
