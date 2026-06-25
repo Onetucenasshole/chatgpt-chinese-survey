@@ -669,10 +669,13 @@ function renderSPSS(responses) {
     }
   });
 
-  // Grand total alpha
-  if (grandAlphas.length > 0 && currentModule === 'all') {
-    const avgAlpha = (grandAlphas.reduce((s,a)=>s+a,0)/grandAlphas.length).toFixed(3);
-    html += `<tr class="module-row"><td colspan="7">整体 Cronbach's α = ${avgAlpha}</td></tr>`;
+  // Overall alpha when viewing all modules: calculate directly from all questions
+  if (currentModule === 'all') {
+    const maxQ = currentTab === 'teacher' ? 46 : 63;
+    const overallAlpha = calcAlpha(responses, 1, maxQ);
+    if (overallAlpha !== null) {
+      html += `<tr class="module-row"><td colspan="7">整体 Cronbach's α (Q1-Q${maxQ}) = ${overallAlpha.toFixed(3)} ${overallAlpha>=0.7?'✅ 良好':'⚠️ 偏低'}</td></tr>`;
+    }
   }
 
   html += '</tbody></table>';
