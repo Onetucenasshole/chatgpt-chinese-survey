@@ -299,10 +299,34 @@ input[type="text"]:focus, input[type="number"]:focus {
   pointer-events: none;
 }
 .toast.show { opacity: 1; }
+
+/* Paused overlay */
+.paused-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9998; align-items: center; justify-content: center;
+  background: #f0f2f5;
+}
+.paused-overlay.show { display: flex; }
+.paused-card {
+  background: #fff; border-radius: 20px; padding: 56px 40px; text-align: center;
+  max-width: 480px; width: 90%; box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+}
+.paused-card .icon { font-size: 56px; margin-bottom: 16px; }
+.paused-card h2 { color: #666; font-size: 20px; margin-bottom: 12px; }
+.paused-card p { color: #999; font-size: 14px; line-height: 1.8; }
 </style>
 </head>
 <body>
 
+<!-- Paused Overlay -->
+<div class="paused-overlay" id="pausedOverlay">
+  <div class="paused-card">
+    <div class="icon">⏸️</div>
+    <h2>问卷暂停收集中</h2>
+    <p>感谢您的关注！<br>本问卷目前暂停收集，请稍后再来。</p>
+  </div>
+</div>
+
+<div id="surveyContent">
 <div class="progress-bar-wrap">
   <div class="container">
     <div class="progress-bar"><div class="progress-inner" id="progressBar" style="width:0%"></div></div>
@@ -464,12 +488,27 @@ input[type="text"]:focus, input[type="number"]:focus {
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 </div>
+</div>
 
 <script>
 // ==== 数据收集配置 ====
 const JSONBIN_KEY  = '$2a$10$kZoAs0pS9hzA5rvrM10mDuq7y1ASxJlZoISmJIkBBSbic9jyQMJVu';
 const JSONBIN_URL  = 'https://api.jsonbin.io/v3/b/6a2e534cda38895dfebd6be2';
 const JSONBIN_GET  = JSONBIN_URL + '/latest';
+
+// ==== 开关配置 ====
+const CONFIG_BIN = '6a3d2840f5f4af5e292ed7a1';
+const CONFIG_URL = `https://api.jsonbin.io/v3/b/${CONFIG_BIN}/latest`;
+let surveyOpen = true;
+
+fetch(CONFIG_URL, { headers: { 'X-Master-Key': JSONBIN_KEY } })
+  .then(r => r.json()).then(j => {
+    surveyOpen = j.record && j.record.teacher_open !== false;
+    if (!surveyOpen) {
+      document.getElementById('surveyContent').style.display = 'none';
+      document.getElementById('pausedOverlay').classList.add('show');
+    }
+  }).catch(() => {});
 
 // ==== Likert Question Data ====
 const likertSections = [
@@ -659,6 +698,7 @@ function collectData() {
 
 // ==== Submit ====
 function submitSurvey() {
+  if (!surveyOpen) { showToast('⚠️ 问卷已暂停收集'); return; }
   // Validate basic info
   const validations = [
     { check: () => validateNumber('age'), el: document.getElementById('age') },

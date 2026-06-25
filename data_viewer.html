@@ -236,6 +236,15 @@ table.data-table {
     <div class="table-wrap" id="spssContent"></div>
   </div>
 
+  <div class="card">
+    <h3>🔧 问卷开关</h3>
+    <div class="toolbar">
+      <button id="btnTeacherToggle" class="btn btn-primary" onclick="toggleSurvey('teacher')" style="min-width:200px;">🧑‍🏫 教师问卷：检测中...</button>
+      <button id="btnStudentToggle" class="btn btn-purple" onclick="toggleSurvey('student')" style="min-width:200px;">👩‍🎓 学生问卷：检测中...</button>
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:8px;">关闭后填写者将看到"问卷暂停收集"页面，开启后恢复正常填写。</p>
+  </div>
+
   <!-- 基础信息频数分析 -->
   <div class="card" id="freqCard">
     <h3>📋 基础信息频数分析</h3>
@@ -1111,6 +1120,48 @@ function clearData() {
   }
 }
 
+// ==== Survey Toggle ====
+const CONFIG_BIN_ID = '6a3d2840f5f4af5e292ed7a1';
+let configStatus = { teacher_open: true, student_open: true };
+
+function loadConfig() {
+  fetch(`https://api.jsonbin.io/v3/b/${CONFIG_BIN_ID}/latest`, {
+    headers: { 'X-Master-Key': JSONBIN_KEY }
+  }).then(r => r.json()).then(j => {
+    configStatus = j.record || { teacher_open: true, student_open: true };
+    updateToggleButtons();
+  }).catch(() => updateToggleButtons());
+}
+
+function updateToggleButtons() {
+  const tb = document.getElementById('btnTeacherToggle');
+  const sb = document.getElementById('btnStudentToggle');
+  if (tb) {
+    tb.textContent = '🧑‍🏫 教师问卷：' + (configStatus.teacher_open ? '已开启 ✅' : '已关闭 ⏸️');
+    tb.className = configStatus.teacher_open ? 'btn btn-green' : 'btn btn-danger';
+  }
+  if (sb) {
+    sb.textContent = '👩‍🎓 学生问卷：' + (configStatus.student_open ? '已开启 ✅' : '已关闭 ⏸️');
+    sb.className = configStatus.student_open ? 'btn btn-green' : 'btn btn-danger';
+  }
+}
+
+function toggleSurvey(type) {
+  const key = type === 'teacher' ? 'teacher_open' : 'student_open';
+  configStatus[key] = !configStatus[key];
+  fetch(`https://api.jsonbin.io/v3/b/${CONFIG_BIN_ID}`, {
+    method: 'PUT',
+    headers: { 'X-Master-Key': JSONBIN_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(configStatus)
+  }).then(() => {
+    updateToggleButtons();
+    showToast(`✅ ${type==='teacher'?'教师':'学生'}问卷已${configStatus[key]?'开启':'关闭'}`);
+  }).catch(() => {
+    configStatus[key] = !configStatus[key]; // revert
+    showToast('⚠️ 操作失败，请重试');
+  });
+}
+
 // ==== Toast ====
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -1121,6 +1172,7 @@ function showToast(msg) {
 // ==== Load ====
 populateModuleFilter();
 renderAll();
+loadConfig();
 </script>
 </body>
 </html>

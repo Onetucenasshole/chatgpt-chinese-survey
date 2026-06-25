@@ -156,9 +156,31 @@ input[type="text"]:focus, input[type="number"]:focus { border-color: #8e44ad; ou
   .section { padding: 16px; }
   .likert-table th, .likert-table td { padding: 6px 2px; font-size: 11px; }
 }
+
+.paused-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9998; align-items: center; justify-content: center;
+  background: #f0f2f5;
+}
+.paused-overlay.show { display: flex; }
+.paused-card {
+  background: #fff; border-radius: 20px; padding: 56px 40px; text-align: center;
+  max-width: 480px; width: 90%; box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+}
+.paused-card .icon { font-size: 56px; margin-bottom: 16px; }
+.paused-card h2 { color: #666; font-size: 20px; margin-bottom: 12px; }
+.paused-card p { color: #999; font-size: 14px; line-height: 1.8; }
 </style>
 </head>
 <body>
+
+<div class="paused-overlay" id="pausedOverlay">
+  <div class="paused-card">
+    <div class="icon">⏸️</div>
+    <h2>Cuestionario pausado</h2>
+    <p>¡Gracias por tu interés!<br>Este cuestionario está temporalmente pausado. Por favor, vuelve más tarde.</p>
+  </div>
+</div>
+<div id="surveyContent">
 
 <div class="progress-bar-wrap">
   <div class="container">
@@ -305,8 +327,7 @@ input[type="text"]:focus, input[type="number"]:focus { border-color: #8e44ad; ou
       <p>¡Muchas gracias por tomarte el tiempo de completar esta encuesta!<br>Tus respuestas serán una referencia valiosa para la investigación sobre la enseñanza del chino asistida por ChatGPT.</p>
       <button onclick="closeThankYou()" style="margin-top:16px;background:none;border:none;color:#888;cursor:pointer;font-size:13px;">Cerrar</button>
     </div>
-  </div>
-
+</div>
   <div class="toast" id="toast"></div>
 </div>
 
@@ -315,6 +336,19 @@ input[type="text"]:focus, input[type="number"]:focus { border-color: #8e44ad; ou
 const JSONBIN_KEY  = '$2a$10$kZoAs0pS9hzA5rvrM10mDuq7y1ASxJlZoISmJIkBBSbic9jyQMJVu';
 const JSONBIN_URL  = 'https://api.jsonbin.io/v3/b/6a2e534df5f4af5e29eef0a9';
 const JSONBIN_GET  = JSONBIN_URL + '/latest';
+
+const CONFIG_BIN = '6a3d2840f5f4af5e292ed7a1';
+const CONFIG_URL = `https://api.jsonbin.io/v3/b/${CONFIG_BIN}/latest`;
+let surveyOpen = true;
+
+fetch(CONFIG_URL, { headers: { 'X-Master-Key': JSONBIN_KEY } })
+  .then(r => r.json()).then(j => {
+    surveyOpen = j.record && j.record.student_open !== false;
+    if (!surveyOpen) {
+      document.getElementById('surveyContent').style.display = 'none';
+      document.getElementById('pausedOverlay').classList.add('show');
+    }
+  }).catch(() => {});
 
 // ==== Other input toggle ====
 function toggleOther(inputId, checkbox) {
@@ -535,6 +569,7 @@ function collectData() {
 
 // ==== Submit ====
 function submitSurvey() {
+  if (!surveyOpen) { showToast('⚠️ Cuestionario pausado'); return; }
   const validations = [
     { check: () => validateText('age') },
     { check: () => validateRequired('gender') },
