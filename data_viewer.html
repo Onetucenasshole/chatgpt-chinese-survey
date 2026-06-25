@@ -646,7 +646,6 @@ function renderSPSS(responses) {
   targetMods.forEach(mod => {
     html += `<tr class="module-row"><td colspan="7">${mod.name} (Q${mod.qStart}-Q${mod.qEnd})</td></tr>`;
 
-    const modVals = []; // For alpha calculation
     for (let qi = mod.qStart; qi <= mod.qEnd; qi++) {
       const k = 'q' + qi;
       const vals = responses.map(r => r.likert && r.likert[k]).filter(v => v !== null && v !== undefined);
@@ -660,11 +659,10 @@ function renderSPSS(responses) {
       const label = allQs[qi-1] || 'Q'+qi;
 
       html += `<tr><td class="left">${label}</td><td>${n}</td><td>${meanNum.toFixed(2)}</td><td>${medianNum.toFixed(2)}</td><td>${sdNum.toFixed(2)}</td><td>${vals[0]}</td><td>${vals[n-1]}</td></tr>`;
-      modVals.push(vals);
     }
 
     // Cronbach's Alpha for this module
-    const alpha = calcAlpha(modVals, responses.length);
+    const alpha = calcAlpha(responses, mod.qStart, mod.qEnd);
     if (alpha !== null) {
       html += `<tr><td class="left" style="font-weight:700;">Cronbach's α</td><td colspan="6" class="alpha">α = ${alpha.toFixed(3)} ${alpha>=0.7?'✅ 良好':'⚠️ 偏低'}</td></tr>`;
       grandAlphas.push(alpha);
@@ -681,35 +679,40 @@ function renderSPSS(responses) {
   container.innerHTML = html;
 }
 
-function calcAlpha(moduleVals, totalN) {
-  const k = moduleVals.length;
+function calcAlpha(responses, qStart, qEnd) {
+  const k = qEnd - qStart + 1;
   if (k < 2) return null;
-  const n = Math.min(...moduleVals.map(v => v.length));
+
+  // Listwise deletion: only respondents who answered ALL questions in range
+  const matrix = [];
+  responses.forEach(r => {
+    const row = [];
+    for (let qi = qStart; qi <= qEnd; qi++) {
+      const v = r.likert && r.likert['q' + qi];
+      if (v == null) return;
+      row.push(v);
+    }
+    matrix.push(row);
+  });
+
+  const n = matrix.length;
   if (n < 2) return null;
 
-  // Calculate item variances and total variance using paired complete cases
-  let varItems = 0, varTotal = 0;
-  const paired = [];
-  for (let i = 0; i < n; i++) {
-    let row = moduleVals.map(v => v[i]);
-    if (row.every(x => x !== null && x !== undefined)) paired.push(row);
-  }
-  if (paired.length < 2) return null;
-
-  const pn = paired.length;
   // Item variances
+  let varItems = 0;
   for (let j = 0; j < k; j++) {
-    const col = paired.map(r => r[j]);
-    const m = col.reduce((s,v)=>s+v,0)/pn;
-    varItems += col.reduce((s,v)=>s+(v-m)*(v-m),0)/pn;
+    const col = matrix.map(r => r[j]);
+    const m = col.reduce((s, v) => s + v, 0) / n;
+    varItems += col.reduce((s, v) => s + (v - m) * (v - m), 0) / n;
   }
+
   // Total score variance
-  const totals = paired.map(r => r.reduce((s,v)=>s+v,0));
-  const totalMean = totals.reduce((s,v)=>s+v,0)/pn;
-  varTotal = totals.reduce((s,v)=>s+(v-totalMean)*(v-totalMean),0)/pn;
+  const totals = matrix.map(r => r.reduce((s, v) => s + v, 0));
+  const totalMean = totals.reduce((s, v) => s + v, 0) / n;
+  const varTotal = totals.reduce((s, v) => s + (v - totalMean) * (v - totalMean), 0) / n;
 
   if (varTotal === 0) return null;
-  return (k/(k-1)) * (1 - varItems/varTotal);
+  return (k / (k - 1)) * (1 - varItems / varTotal);
 }
 
 // ==== 基础信息频数分析（三线表） ====
@@ -919,7 +922,6 @@ function exportSPSSReport() {
     report += `${'-'.repeat(50)}\n`;
     report += `题目\t\t\tN\t均值\t中位数\tSD\tMin\tMax\n`;
 
-    const modVals = [];
     for (let qi = mod.qStart; qi <= mod.qEnd; qi++) {
       const k = 'q' + qi;
       const vals = responses.map(r => r.likert && r.likert[k]).filter(v => v != null);
@@ -931,9 +933,8 @@ function exportSPSSReport() {
       const sdNum = Math.sqrt(variance);
       const label = (allQs[qi-1]||'Q'+qi).slice(0, 20).padEnd(20);
       report += `${label}\t${n}\t${meanNum.toFixed(2)}\t${(n%2===0 ? ((vals[n/2-1]+vals[n/2])/2) : vals[Math.floor(n/2)]).toFixed(2)}\t${sdNum.toFixed(2)}\t${vals[0]}\t${vals[n-1]}\n`;
-      modVals.push(vals);
     }
-    const alpha = calcAlpha(modVals, responses.length);
+    const alpha = calcAlpha(responses, mod.qStart, mod.qEnd);
     if (alpha !== null) {
       report += `\nCronbach's α = ${alpha.toFixed(3)} ${alpha>=0.7?'(良好)':'(偏低)'}\n`;
     }
