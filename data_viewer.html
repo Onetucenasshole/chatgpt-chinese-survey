@@ -958,10 +958,36 @@ function exportCSV() {
   const responses = getResponses();
   if (responses.length === 0) { showToast('⚠️ 没有数据可导出'); return; }
 
-  const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
-  let csv = '\uFEFF'; // BOM for Excel
+  // 西语→中文翻译表
+  const es2zh = {
+    'Femenino':'女','Masculino':'男','Femenino ':'女','Masculino ':'男',
+    'Menos de 3 meses':'少于3个月','3–6 meses':'3-6个月','3-6 meses':'3-6个月',
+    '6 meses – 1 año':'6个月-1年','6 meses - 1 año':'6个月-1年',
+    '1–2 años':'1-2年','1-2 años':'1-2年','Más de 2 años':'2年以上',
+    'Principiante (sin base)':'零基础',
+    'Interés personal':'兴趣爱好','Requisito de los padres':'父母要求',
+    'Necesidad laboral':'工作需要','Para viajar':'旅游需要',
+    'Comunicarme con amigos chinos':'与中国朋友交流',
+    'Conocer la cultura china':'了解中国文化','Otro':'其他',
+    'Nunca':'从不','Raramente':'很少','A veces':'有时','Con frecuencia':'经常',
+    'Diccionario electrónico':'电子词典','Apps de aprendizaje de chino':'汉语学习App',
+    'Cursos en línea':'在线课程','Software de traducción':'翻译软件',
+    'YouTube / Bilibili y otros videos':'YouTube/B站等视频',
+    'ChatGPT u otras herramientas de IA':'ChatGPT或其他AI工具',
+    'No he usado ninguna':'没有使用过',
+  };
+  function tr(v) {
+    if (!v || typeof v !== 'string') return v;
+    for (const [es, zh] of Object.entries(es2zh)) {
+      v = v.replace(es, zh);
+    }
+    return v;
+  }
+  function trArr(arr) { return (arr || []).map(v => tr(v)).join(';'); }
 
-  // Headers
+  const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
+  let csv = '\uFEFF';
+
   let headers = ['序号', '提交时间'];
   if (currentTab === 'teacher') {
     headers.push('age', 'gender', 'teachYears', 'targetStudents', 'studentLevel', 'latinExp', 'teachLang', 'schoolType', 'useAI');
