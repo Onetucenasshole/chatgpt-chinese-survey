@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -960,17 +960,48 @@ function exportCSV() {
   if (responses.length === 0) { showToast('⚠️ 没有数据可导出'); return; }
 
   const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
-  let csv = '\uFEFF'; // BOM for Excel
+  let csv = ''; // UTF-8 without BOM for SPSS compatibility
 
   // Headers
   let headers = ['序号', '提交时间'];
   if (currentTab === 'teacher') {
-    headers.push('年龄', '性别', '教龄', '教学对象', '学生汉语水平', '拉美任教经验', '授课语言', '学校类型', '是否使用AI');
+    headers.push('age', 'gender', 'teachYears', 'targetStudents', 'studentLevel', 'latinExp', 'teachLang', 'schoolType', 'useAI');
   } else {
-    headers.push('年龄', '性别', '学习汉语时间', '汉语水平', '学习目的', '学习目的(其他)', '数字工具频率', '使用工具', '使用工具(其他)');
+    headers.push('age', 'gender', 'studyDuration', 'hskLevel', 'studyPurpose', 'studyPurposeOther', 'toolFreq', 'toolsUsed', 'toolsUsedOther');
   }
-  const likertHeaders = questions.map((q, i) => `Q${i+1}: ${q}`);
+  const likertHeaders = questions.map((_, i) => `Q${i+1}`);
   csv += headers.concat(likertHeaders).join(',') + '\n';
+
+  // Spanish-to-Chinese translation for student survey values
+  const esToCn = {
+    'Masculino': '男',
+    'Femenino': '女',
+    'Menos de 3 meses': '少于3个月',
+    '3-6 meses': '3-6个月',
+    '6 meses - 1 a\u00f1o': '6个月-1年',
+    '1-2 a\u00f1os': '1-2年',
+    'M\u00e1s de 2 a\u00f1os': '超过2年',
+    'Principiante (sin base)': '初学者(无基础)',
+    'HSK 3 o superior': 'HSK 3及以上',
+    'Inter\u00e9s personal': '个人兴趣',
+    'Necesidad laboral': '工作需求',
+    'Para viajar': '旅游',
+    'Comunicarme con amigos chinos': '与华人朋友交流',
+    'Conocer la cultura china': '了解中国文化',
+    'Requisito de los padres': '父母要求',
+    'Nunca': '从不',
+    'Raramente': '很少',
+    'A veces': '有时',
+    'Con frecuencia': '经常',
+    'Diccionario electr\u00f3nico': '电子词典',
+    'Apps de aprendizaje de chino': '中文学习App',
+    'Cursos en l\u00ednea': '在线课程',
+    'Software de traducci\u00f3n': '翻译软件',
+    'YouTube / Bilibili y otros videos': 'YouTube/Bilibili等视频',
+    'ChatGPT u otras herramientas de IA': 'ChatGPT等AI工具',
+    'No he usado ninguna': '未使用过任何工具'
+  };
+  const translateVal = v => esToCn[v] || v;
 
   responses.forEach((r, idx) => {
     let row = [idx + 1, r.timestamp];
@@ -978,8 +1009,8 @@ function exportCSV() {
       row.push(r.age, r.gender || '', r.teachYears, (r.targetStudents || []).join(';'), (r.studentLevel || []).join(';'),
                r.latinExp, (r.teachLang || []).join(';'), r.schoolType, r.useAI);
     } else {
-      row.push(r.age, r.gender, r.studyDuration, r.hskLevel, (r.studyPurpose || []).join(';'),
-               r.studyPurposeOther || '', r.toolFreq, (r.toolsUsed || []).join(';'), r.toolsUsedOther || '');
+      row.push(r.age, translateVal(r.gender), translateVal(r.studyDuration), translateVal(r.hskLevel), (r.studyPurpose || []).map(translateVal).join(';'),
+               r.studyPurposeOther || '', translateVal(r.toolFreq), (r.toolsUsed || []).map(translateVal).join(';'), r.toolsUsedOther || '');
     }
     questions.forEach((_, i) => {
       const k = `q${i + 1}`;
