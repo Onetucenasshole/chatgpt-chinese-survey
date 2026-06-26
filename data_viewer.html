@@ -1040,8 +1040,8 @@ function exportCSV() {
       row.push(r.age, r.gender || '', r.teachYears, (r.targetStudents || []).join(';'), (r.studentLevel || []).join(';'),
                r.latinExp, (r.teachLang || []).join(';'), r.schoolType, r.useAI);
     } else {
-      row.push(r.age, translateVal(r.gender), translateVal(r.studyDuration), translateVal(r.hskLevel), (r.studyPurpose || []).map(translateVal).join(';'),
-               r.studyPurposeOther || '', translateVal(r.toolFreq), (r.toolsUsed || []).map(translateVal).join(';'), r.toolsUsedOther || '');
+      row.push(r.age, tr(r.gender), tr(r.studyDuration), tr(r.hskLevel), trArr(r.studyPurpose),
+               tr(r.studyPurposeOther || ''), tr(r.toolFreq), trArr(r.toolsUsed), tr(r.toolsUsedOther || ''));
     }
     questions.forEach((_, i) => {
       const k = `q${i + 1}`;
