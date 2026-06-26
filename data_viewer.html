@@ -853,7 +853,6 @@ function exportFreqDOCX() {
 function exportFreqExcel() {
   if (freqExportData.length === 0) { showToast('⚠️ 没有数据可导出'); return; }
   const typeName = currentTab === 'teacher' ? '教师' : '学生';
-  let csv = '\uFEFF';
   csv += `基本信息,类目,人数,占比(%)\n`;
   freqExportData.forEach(g => {
     g.rows.forEach(row => {
@@ -960,7 +959,7 @@ function exportCSV() {
   if (responses.length === 0) { showToast('⚠️ 没有数据可导出'); return; }
 
   const questions = currentTab === 'teacher' ? teacherQuestions : studentQuestions;
-  let csv = ''; // UTF-8 without BOM for SPSS compatibility
+  let csv = '\uFEFF'; // BOM for Excel
 
   // Headers
   let headers = ['序号', '提交时间'];
